@@ -110,7 +110,11 @@ public class ModuleDeserialization {
       int size = stream.readInt();
       Set<Definition> dependencies = new HashSet<>();
       for (int i = 0; i < size; ++i) {
-        dependencies.add(definitionMap.get(stream.readInt()));
+        Definition dependency = definitionMap.get(stream.readInt());
+        if (dependency == null) {
+          throw new IncorrectFormat();
+        }
+        dependencies.add(dependency);
       }
       definition.setDependencies(dependencies);
     }
@@ -156,10 +160,11 @@ public class ModuleDeserialization {
       int constructorsNumber = stream.readInt();
       dataDefinition.setConstructors(new ArrayList<Constructor>(constructorsNumber));
       for (int i = 0; i < constructorsNumber; ++i) {
-        Constructor constructor = (Constructor) definitionMap.get(stream.readInt());
-        if (constructor == null) {
+        Definition definition1 = definitionMap.get(stream.readInt());
+        if (!(definition1 instanceof Constructor)) {
           throw new IncorrectFormat();
         }
+        Constructor constructor = (Constructor) definition1;
         constructor.setIndex(i);
         constructor.hasErrors(stream.readBoolean());
         readDefinition(stream, constructor);
@@ -190,8 +195,22 @@ public class ModuleDeserialization {
     definition.setUniverse(readUniverse(stream));
 
     int size = stream.readInt();
+    List<ClassDefinition> superClasses = new ArrayList<>(size);
+    for (int i = 0; i < size; ++i) {
+      Definition superClass = definitionMap.get(stream.readInt());
+      if (!(superClass instanceof ClassDefinition)) {
+        throw new IncorrectFormat();
+      }
+      superClasses.add((ClassDefinition) superClass);
+    }
+    definition.setSuperClasses(superClasses);
+
+    size = stream.readInt();
     for (int i = 0; i < size; ++i) {
       Definition field = definitionMap.get(stream.readInt());
+      if (field == null) {
+        throw new IncorrectFormat();
+      }
       if (field.getParent() == definition) {
         deserializeDefinition(stream, definitionMap, field);
       }
@@ -203,7 +222,11 @@ public class ModuleDeserialization {
 
     size = stream.readInt();
     for (int i = 0; i < size; ++i) {
-      definition.addStaticField(definitionMap.get(stream.readInt()), myModuleLoader.getErrors());
+      Definition field = definitionMap.get(stream.readInt());
+      if (field == null) {
+        throw new IncorrectFormat();
+      }
+      definition.addStaticField(field, myModuleLoader.getErrors());
     }
 
     definition.hasErrors(false);

@@ -2,15 +2,12 @@ grammar Vcgrammar;
 
 defs  : def*;
 
-def   : '\\function' precedence name tele* typeTermOpt          # defFunction
-      | '\\override' name ('\\as' name)? tele* typeTermOpt      # defOverride
-      | '\\data' precedence name tele* (':' expr)? constructor* # defData
-      | '\\class' ID tele* classFields                          # defClass
-      | '\\extends' ID                                          # defExtends
-      | nsCmd name fieldAcc* ('(' name (',' name)* ')')?        # defCmd
+def   : '\\function' precedence name tele* typeTermOpt                          # defFunction
+      | '\\override' name ('\\as' name)? tele* typeTermOpt                      # defOverride
+      | '\\data' precedence name tele* (':' expr)? constructor*                 # defData
+      | '\\class' ID tele* ('\\extends' longName (',' longName)*)? classFields  # defClass
+      | nsCmd longName ('(' name (',' name)* ')')?                              # defCmd
       ;
-
-renamingClause : name '\\to' name;
 
 classFields : '{' defs '}';
 
@@ -42,6 +39,8 @@ associativity : '\\infix'               # nonAssoc
 name  : ID                              # nameId
       | '(' BIN_OP ')'                  # nameBinOp
       ;
+
+longName : name fieldAcc*;
 
 expr  : binOpLeft* maybeNew atomFieldsAcc argument*         # binOp
       | <assoc=right> expr '->' expr                        # arr
@@ -78,7 +77,7 @@ fieldAcc : '.' name                     # classField
          ;
 
 infix : BIN_OP                          # infixBinOp
-      | '`' name fieldAcc* '`'          # infixId
+      | '`' longName '`'                # infixId
       ;
 
 atom  : '(' expr (',' expr)* ')'        # tuple

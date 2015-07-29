@@ -740,18 +740,16 @@ public final class Concrete {
     private final Abstract.Definition.Arrow myArrow;
     private final List<Argument> myArguments;
     private final Expression myResultType;
-    private final boolean myOverridden;
-    private final Name myOriginalName;
+    private final com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition myOverriddenFunction;
     private Expression myTerm;
 
-    public FunctionDefinition(Position position, Name name, Precedence precedence, List<Argument> arguments, Expression resultType, Abstract.Definition.Arrow arrow, Expression term, boolean overridden, Name originalName) {
+    public FunctionDefinition(Position position, Name name, Precedence precedence, List<Argument> arguments, Expression resultType, Abstract.Definition.Arrow arrow, Expression term, com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition overriddenFunction) {
       super(position, name, precedence, null);
       myArguments = arguments;
       myResultType = resultType;
       myArrow = arrow;
       myTerm = term;
-      myOverridden = overridden;
-      myOriginalName = originalName;
+      myOverriddenFunction = overriddenFunction;
     }
 
     @Override
@@ -765,13 +763,8 @@ public final class Concrete {
     }
 
     @Override
-    public boolean isOverridden() {
-      return myOverridden;
-    }
-
-    @Override
-    public Name getOriginalName() {
-      return myOriginalName;
+    public com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition getOverriddenFunction() {
+      return myOverriddenFunction;
     }
 
     @Override
@@ -822,25 +815,6 @@ public final class Concrete {
     @Override
     public <P, R> R accept(AbstractDefinitionVisitor<? super P, ? extends R> visitor, P params) {
       return visitor.visitData(this, params);
-    }
-  }
-
-  public static class ClassDefinition extends Definition implements Abstract.ClassDefinition {
-    private final List<Definition> myFields;
-
-    public ClassDefinition(Position position, String name, Universe universe, List<Definition> fields) {
-      super(position, new Name(name, Fixity.PREFIX), DEFAULT_PRECEDENCE, universe);
-      myFields = fields;
-    }
-
-    @Override
-    public <P, R> R accept(AbstractDefinitionVisitor<? super P, ? extends R> visitor, P params) {
-      return visitor.visitClass(this, params);
-    }
-
-    @Override
-    public List<Definition> getPublicFields() {
-      return myFields;
     }
   }
 

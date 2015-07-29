@@ -47,12 +47,7 @@ public class FunctionDefinition extends Definition implements Abstract.FunctionD
   }
 
   @Override
-  public boolean isOverridden() {
-    return false;
-  }
-
-  @Override
-  public Utils.Name getOriginalName() {
+  public FunctionDefinition getOverriddenFunction() {
     return null;
   }
 

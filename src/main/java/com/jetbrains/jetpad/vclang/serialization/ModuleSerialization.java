@@ -109,6 +109,15 @@ public class ModuleSerialization {
   private static int serializeClassDefinition(SerializeVisitor visitor, ClassDefinition definition) throws IOException {
     writeUniverse(visitor.getDataStream(), definition.getUniverse());
 
+    if (definition.getSuperClasses() != null) {
+      visitor.getDataStream().writeInt(definition.getSuperClasses().size());
+      for (ClassDefinition superClass : definition.getSuperClasses()) {
+        visitor.getDataStream().writeInt(visitor.getDefinitionsIndices().getDefinitionIndex(superClass));
+      }
+    } else {
+      visitor.getDataStream().writeInt(0);
+    }
+
     int errors = 0;
     if (definition.getPublicFields() != null) {
       visitor.getDataStream().writeInt(definition.getPublicFields().size());

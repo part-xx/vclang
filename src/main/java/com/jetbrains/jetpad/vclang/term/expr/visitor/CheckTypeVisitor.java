@@ -1372,9 +1372,11 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
 
     // TODO
     Map<String, FunctionDefinition> abstracts = new HashMap<>();
-    for (Definition definition : expr.getBaseClass().getPublicFields()) {
-      if (definition instanceof FunctionDefinition && definition.isAbstract()) {
-        abstracts.put(definition.getName().name, (FunctionDefinition) definition);
+    if (expr.getBaseClass().getPublicFields() != null) {
+      for (Definition definition : expr.getBaseClass().getPublicFields()) {
+        if (definition instanceof FunctionDefinition && definition.isAbstract()) {
+          abstracts.put(definition.getName().name, (FunctionDefinition) definition);
+        }
       }
     }
 
@@ -1384,7 +1386,7 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
       if (oldDefinition == null) {
         myModuleLoader.getTypeCheckingErrors().add(new TypeCheckingError(myParent, definition.getName() + " is not defined in " + expr.getBaseClass().getFullName(), definition, getNames(myLocalContext)));
       } else {
-        OverriddenDefinition newDefinition = (OverriddenDefinition) TypeChecking.typeCheckFunctionBegin(myModuleLoader, expr.getBaseClass(), definition, myLocalContext, oldDefinition);
+        OverriddenDefinition newDefinition = (OverriddenDefinition) TypeChecking.typeCheckFunctionBegin(myModuleLoader, expr.getBaseClass(), definition, myLocalContext);
         if (newDefinition == null) return null;
         TypeChecking.typeCheckFunctionEnd(myModuleLoader, expr.getBaseClass(), definition.getTerm(), newDefinition, myLocalContext, oldDefinition, false);
         definitions.put(oldDefinition, newDefinition);

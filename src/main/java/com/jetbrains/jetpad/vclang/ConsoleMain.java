@@ -122,7 +122,7 @@ public class ConsoleMain {
 
     ClassDefinition module = moduleLoader.rootModule();
     for (int i = 0; i < moduleNames.size() - 1; ++i) {
-      ClassDefinition module1 = module.getClass(moduleNames.get(i), moduleLoader.getErrors());
+      ClassDefinition module1 = module.getClass(moduleNames.get(i), null, moduleLoader.getErrors());
       if (module1 == null) return;
       module1.hasErrors(false);
       module.addStaticField(module1, moduleLoader.getErrors());

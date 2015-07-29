@@ -176,23 +176,16 @@ public class TypeChecking {
     return constructor;
   }
 
-  public static FunctionDefinition typeCheckFunctionBegin(ModuleLoader moduleLoader, ClassDefinition parent, Abstract.FunctionDefinition def, List<Binding> localContext, FunctionDefinition overriddenFunction) {
-    if (overriddenFunction == null && def.isOverridden()) {
-      // TODO
-      // myModuleLoader.getTypeCheckingErrors().add(new TypeCheckingError(parent, "Cannot find function " + def.getName() + " in the parent class", def, getNames(localContext)));
-      moduleLoader.getTypeCheckingErrors().add(new TypeCheckingError(parent, "Overridden function " + def.getName() + " cannot be defined in a base class", def, getNames(localContext)));
-      return null;
-    }
-
+  public static FunctionDefinition typeCheckFunctionBegin(ModuleLoader moduleLoader, ClassDefinition parent, Abstract.FunctionDefinition def, List<Binding> localContext) {
     List<Argument> arguments = new ArrayList<>(def.getArguments().size());
     Set<Definition> abstractCalls = new HashSet<>();
     CheckTypeVisitor visitor = new CheckTypeVisitor(parent, localContext, abstractCalls, moduleLoader, CheckTypeVisitor.Side.RHS);
 
     List<TypeArgument> splitArgs = null;
     Expression splitResult = null;
-    if (overriddenFunction != null) {
+    if (def.getOverriddenFunction() != null) {
       splitArgs = new ArrayList<>();
-      splitResult = splitArguments(overriddenFunction.getType(), splitArgs);
+      splitResult = splitArguments(def.getOverriddenFunction().getType(), splitArgs);
     }
 
     int index = 0;
@@ -296,7 +289,7 @@ public class TypeChecking {
     }
 
     Expression overriddenResultType = null;
-    if (overriddenFunction != null) {
+    if (splitArgs != null) {
       if (numberOfArgs == splitArgs.size()) {
         overriddenResultType = splitResult;
       } else {
@@ -330,16 +323,14 @@ public class TypeChecking {
     }
 
     FunctionDefinition result;
-    if (def.isOverridden()) {
-      OverriddenDefinition overriddenDefinition = new OverriddenDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null, overriddenFunction);
-      overriddenDefinition.setOverriddenFunction(overriddenFunction);
-      result = overriddenDefinition;
+    if (def.getOverriddenFunction() != null) {
+      result = new OverriddenDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null, def.getOverriddenFunction());
     } else {
       result = new FunctionDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null);
     }
 
     result.setDependencies(abstractCalls);
-    if (!def.isOverridden() && !parent.addField(result, moduleLoader.getErrors())) {
+    if (def.getOverriddenFunction() == null && !parent.addField(result, moduleLoader.getErrors())) {
       trimToSize(localContext, origSize);
       return null;
     }

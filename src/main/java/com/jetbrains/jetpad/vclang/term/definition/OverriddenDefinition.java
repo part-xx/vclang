@@ -19,22 +19,13 @@ public class OverriddenDefinition extends FunctionDefinition {
     myOverriddenFunction = overriddenFunction;
   }
 
+  @Override
   public FunctionDefinition getOverriddenFunction() {
     return myOverriddenFunction;
   }
 
   public void setOverriddenFunction(FunctionDefinition overriddenFunction) {
     myOverriddenFunction = overriddenFunction;
-  }
-
-  @Override
-  public boolean isOverridden() {
-    return true;
-  }
-
-  @Override
-  public Utils.Name getOriginalName() {
-    return myOverriddenFunction.getName();
   }
 
   @Override

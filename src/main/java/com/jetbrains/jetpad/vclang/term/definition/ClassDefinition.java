@@ -14,10 +14,16 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
   private List<Definition> myPublicFields;
   private Map<String, Definition> myStaticFields;
   private Map<String, Definition> myPrivateFields;
+  private List<ClassDefinition> mySuperClasses;
 
-  public ClassDefinition(String name, Definition parent) {
+  public ClassDefinition(String name, Definition parent, List<ClassDefinition> superClasses) {
     super(new Utils.Name(name, Fixity.PREFIX), parent, DEFAULT_PRECEDENCE);
     hasErrors(false);
+    mySuperClasses = superClasses;
+  }
+
+  public ClassDefinition(String name, Definition parent) {
+    this(name, parent, null);
   }
 
   @Override
@@ -28,6 +34,15 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
   @Override
   public List<Definition> getPublicFields() {
     return myPublicFields;
+  }
+
+  @Override
+  public List<ClassDefinition> getSuperClasses() {
+    return mySuperClasses;
+  }
+
+  public void setSuperClasses(List<ClassDefinition> superClasses) {
+    mySuperClasses = superClasses;
   }
 
   @Override
@@ -59,7 +74,7 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
     return visitor.visitClass(this, params);
   }
 
-  public ClassDefinition getClass(String name, List<ModuleError> errors) {
+  public ClassDefinition getClass(String name, List<ClassDefinition> superClasses, List<ModuleError> errors) {
     if (myPublicFields != null) {
       Definition definition = getPublicField(name);
       if (definition != null) {
@@ -72,7 +87,7 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
       }
     }
 
-    ClassDefinition result = new ClassDefinition(name, this);
+    ClassDefinition result = new ClassDefinition(name, this, superClasses);
     result.hasErrors(true);
     if (myPublicFields == null) {
       myPublicFields = new ArrayList<>();
@@ -159,5 +174,45 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
     if (myPrivateFields != null) {
       myPrivateFields.remove(definition.getName().name);
     }
+  }
+
+  public FunctionDefinition getFunctionFromSuperClass(String name, List<ModuleError> errors) {
+    if (mySuperClasses != null) {
+      List<ClassDefinition> usedSuperClasses = new ArrayList<>(mySuperClasses.size());
+      if (myPublicFields != null) {
+        for (int i = myPublicFields.size() - 1; i >= 0; --i) {
+          if (!(myPublicFields.get(i) instanceof OverriddenDefinition)) {
+            continue;
+          }
+          FunctionDefinition functionDefinition = ((OverriddenDefinition) myPublicFields.get(i)).getOverriddenFunction();
+          for (ClassDefinition superClass : mySuperClasses) {
+            if (superClass.myPublicFields == null) {
+              continue;
+            }
+            int index = superClass.myPublicFields.indexOf(functionDefinition);
+            if (index != -1) {
+              usedSuperClasses.add(superClass);
+              if (index < superClass.myPublicFields.size() - 1) {
+                Definition definition = superClass.myPublicFields.get(index + 1);
+                if (definition instanceof FunctionDefinition && definition.getName().name.equals(name)) {
+                  return (FunctionDefinition) definition;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for (ClassDefinition superClass : mySuperClasses) {
+        if (usedSuperClasses.contains(superClass)) {
+          continue;
+        }
+        if (superClass.getPublicFields() != null && superClass.getPublicFields().get(0).getName().name.equals(name) && superClass.getPublicFields().get(0) instanceof FunctionDefinition) {
+          return (FunctionDefinition) superClass.getPublicFields().get(0);
+        }
+      }
+    }
+    errors.add(new ModuleError(new Module(this, name), "Cannot find function " + name + " in the parent classes"));
+    return null;
   }
 }

@@ -138,8 +138,23 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
       return visitDefData((DefDataContext) ctx);
     } else
     if (ctx instanceof DefClassContext) {
-      ClassDefinition classDef = myParent.getClass(((DefClassContext) ctx).ID().getText(), myModuleLoader.getErrors());
-      if (classDef == null) return null;
+      List<ClassDefinition> superClasses = new ArrayList<>(((DefClassContext) ctx).longName().size());
+      for (LongNameContext superClassCtx : ((DefClassContext) ctx).longName()) {
+        Definition definition = visitLongName(superClassCtx);
+        if (definition == null) {
+          return null;
+        }
+        if (!(definition instanceof ClassDefinition)) {
+          myModuleLoader.getErrors().add(new ParserError(myModule, tokenPosition(superClassCtx.getStart()), "Expected a class name"));
+          return null;
+        }
+        superClasses.add((ClassDefinition) definition);
+      }
+
+      ClassDefinition classDef = myParent.getClass(((DefClassContext) ctx).ID().getText(), superClasses, myModuleLoader.getErrors());
+      if (classDef == null) {
+        return null;
+      }
       boolean oldOnlyStatics = myOnlyStatics;
       myOnlyStatics = !classDef.hasErrors();
       classDef.hasErrors(false);
@@ -179,12 +194,12 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
   @Override
   public Void visitDefCmd(DefCmdContext ctx) {
     if (ctx == null) return null;
-    Definition module = visitModule(ctx.name(0), ctx.fieldAcc());
+    Definition module = visitLongName(ctx.longName());
     if (module == null) return null;
     boolean remove = ctx.nsCmd() instanceof CloseCmdContext;
     boolean export = ctx.nsCmd() instanceof ExportCmdContext;
-    if (ctx.name().size() > 1) {
-      for (int i = 1; i < ctx.name().size(); ++i) {
+    if (ctx.name().size() > 0) {
+      for (int i = 0; i < ctx.name().size(); ++i) {
         String name = ctx.name(i) instanceof NameBinOpContext ? ((NameBinOpContext) ctx.name(i)).BIN_OP().getText() : ((NameIdContext) ctx.name(i)).ID().getText();
         Definition definition = module.getStaticField(name);
         if (definition == null) {
@@ -285,7 +300,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
     }
 
     List<Binding> localContext = new ArrayList<>();
-    FunctionDefinition typedDef = TypeChecking.typeCheckFunctionBegin(myModuleLoader, myParent, def, localContext, null);
+    FunctionDefinition typedDef = TypeChecking.typeCheckFunctionBegin(myModuleLoader, myParent, def, localContext);
     if (typedDef != null) {
       TypeChecking.typeCheckFunctionEnd(myModuleLoader, myParent, functionCtx.termCtx == null ? null : visitExpr(functionCtx.termCtx), typedDef, localContext, null, myOnlyStatics);
     }
@@ -300,6 +315,10 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
     }
 
     Name originalName = getName(originalNameCtx);
+    if (originalName == null && overridden) {
+      originalName = name;
+    }
+
     int size = myContext.size();
     List<Concrete.Argument> arguments = visitFunctionArguments(teleCtx, overridden);
     if (arguments == null) {
@@ -309,7 +328,14 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
 
     Concrete.Expression type = functionCtx.typeCtx == null ? null : visitExpr(functionCtx.typeCtx);
     Definition.Arrow arrow = functionCtx.arrowCtx instanceof ArrowLeftContext ? Abstract.Definition.Arrow.LEFT : functionCtx.arrowCtx instanceof ArrowRightContext ? Abstract.Definition.Arrow.RIGHT : null;
-    return new Concrete.FunctionDefinition(name.position, name, precCtx == null ? null : visitPrecedence(precCtx), arguments, type, arrow, null, overridden, originalName == null ? null : originalName);
+    FunctionDefinition overriddenFunction = null;
+    if (originalName != null) {
+      overriddenFunction = myParent.getFunctionFromSuperClass(originalName.name, myModuleLoader.getErrors());
+      if (overriddenFunction == null) {
+        return null;
+      }
+    }
+    return new Concrete.FunctionDefinition(name.position, name, precCtx == null ? null : visitPrecedence(precCtx), arguments, type, arrow, null, overriddenFunction);
   }
 
   private void visitFunctionRawEnd(Concrete.FunctionDefinition definition) {
@@ -772,7 +798,9 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
         return null;
       }
 
-      ClassDefinition newParent = (ClassDefinition) ((Concrete.DefCallExpression) expr).getDefinition();
+      List<ClassDefinition> superClasses = new ArrayList<>(1);
+      superClasses.add((ClassDefinition) ((Concrete.DefCallExpression) expr).getDefinition());
+      ClassDefinition newParent = new ClassDefinition("<anonymous>", null, superClasses);
       ClassDefinition oldParent = myParent;
       myParent = newParent;
       List<Concrete.FunctionDefinition> definitions = visitDefsRaw(ctx.classFields().defs());
@@ -895,23 +923,25 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
   @Override
   public Definition visitInfixId(InfixIdContext ctx) {
     if (ctx == null) return null;
-    return visitModule(ctx.name(), ctx.fieldAcc());
+    return visitLongName(ctx.longName());
   }
 
-  public Definition visitModule(NameContext nameCtx, List<FieldAccContext> fieldAccCtx) {
-    boolean binOp = nameCtx instanceof NameBinOpContext;
-    String name = binOp ? ((NameBinOpContext) nameCtx).BIN_OP().getText() : ((NameIdContext) nameCtx).ID().getText();
-    Concrete.Expression expr = findId(name, binOp, tokenPosition(nameCtx.getStart()));
+  @Override
+  public Definition visitLongName(LongNameContext ctx) {
+    if (ctx == null) return null;
+    boolean binOp = ctx.name() instanceof NameBinOpContext;
+    String name = binOp ? ((NameBinOpContext) ctx.name()).BIN_OP().getText() : ((NameIdContext) ctx.name()).ID().getText();
+    Concrete.Expression expr = findId(name, binOp, tokenPosition(ctx.getStart()));
     if (expr == null) return null;
     if (!(expr instanceof Concrete.DefCallExpression)) {
-      myModuleLoader.getErrors().add(new ParserError(myModule, tokenPosition(nameCtx.getStart()), "Expected a global definition"));
+      myModuleLoader.getErrors().add(new ParserError(myModule, tokenPosition(ctx.getStart()), "Expected a global definition"));
       return null;
     }
 
-    expr = visitFieldsAcc(expr, fieldAccCtx);
+    expr = visitFieldsAcc(expr, ctx.fieldAcc());
     if (expr == null) return null;
     if (!(expr instanceof Concrete.DefCallExpression) || ((Concrete.DefCallExpression) expr).getDefinition() == null) {
-      myModuleLoader.getErrors().add(new ParserError(myModule, tokenPosition(nameCtx.getStart()), "Expected a global definition"));
+      myModuleLoader.getErrors().add(new ParserError(myModule, tokenPosition(ctx.getStart()), "Expected a global definition"));
       return null;
     }
 

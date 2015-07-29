@@ -73,7 +73,7 @@ public class ModuleLoader {
       compile = false;
     }
 
-    ClassDefinition moduleDefinition = module.getParent().getClass(module.getName(), myErrors);
+    ClassDefinition moduleDefinition = module.getParent().getClass(module.getName(), null, myErrors);
     if (moduleDefinition == null) {
       return null;
     }

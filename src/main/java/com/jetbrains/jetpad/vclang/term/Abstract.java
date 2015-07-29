@@ -217,8 +217,7 @@ public final class Abstract {
 
   public interface FunctionDefinition extends Definition, Function {
     boolean isAbstract();
-    boolean isOverridden();
-    Utils.Name getOriginalName();
+    com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition getOverriddenFunction();
   }
 
   public interface DataDefinition extends Definition {
@@ -228,6 +227,7 @@ public final class Abstract {
 
   public interface ClassDefinition extends Definition {
     List<? extends Definition> getPublicFields();
+    List<com.jetbrains.jetpad.vclang.term.definition.ClassDefinition> getSuperClasses();
   }
 
   public interface Constructor extends Definition {
