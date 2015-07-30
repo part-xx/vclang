@@ -165,7 +165,7 @@ public class RecordsTest {
           "\\override x => y\n" +
           "\\override y => x\n" +
         "}";
-    parseDefs(moduleLoader, text, 1);
+    parseDefs(moduleLoader, text, 1, 0);
   }
 
   @Test
@@ -183,7 +183,7 @@ public class RecordsTest {
   }
 
   @Test
-  public void splitClassTest2() {
+  public void splitClassTestError() {
     ModuleLoader moduleLoader = new ModuleLoader();
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
     String text =
@@ -193,11 +193,11 @@ public class RecordsTest {
         "\\class A {\n" +
           "\\function y : Nat\n" +
         "}";
-    parseDefs(moduleLoader, text);
+    parseDefs(moduleLoader, text, 1, 0);
   }
 
   @Test
-  public void splitClassTestError() {
+  public void splitClassTestError2() {
     ModuleLoader moduleLoader = new ModuleLoader();
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
     String text =

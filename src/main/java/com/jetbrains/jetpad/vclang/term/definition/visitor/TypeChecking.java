@@ -177,6 +177,10 @@ public class TypeChecking {
   }
 
   public static FunctionDefinition typeCheckFunctionBegin(ModuleLoader moduleLoader, ClassDefinition parent, Abstract.FunctionDefinition def, List<Binding> localContext) {
+    return typeCheckFunctionBegin(moduleLoader, parent, def, localContext, null);
+  }
+
+  public static FunctionDefinition typeCheckFunctionBegin(ModuleLoader moduleLoader, ClassDefinition parent, Abstract.FunctionDefinition def, List<Binding> localContext, FunctionDefinition result) {
     List<Argument> arguments = new ArrayList<>(def.getArguments().size());
     Set<Definition> abstractCalls = new HashSet<>();
     CheckTypeVisitor visitor = new CheckTypeVisitor(parent, localContext, abstractCalls, moduleLoader, CheckTypeVisitor.Side.RHS);
@@ -230,8 +234,8 @@ public class TypeChecking {
     int origSize = localContext.size();
     for (Abstract.Argument argument : def.getArguments()) {
       if (argument instanceof Abstract.TypeArgument) {
-        CheckTypeVisitor.OKResult result = visitor.checkType(((Abstract.TypeArgument) argument).getType(), Universe());
-        if (result == null) {
+        CheckTypeVisitor.OKResult okResult = visitor.checkType(((Abstract.TypeArgument) argument).getType(), Universe());
+        if (okResult == null) {
           trimToSize(localContext, origSize);
           return null;
         }
@@ -239,32 +243,32 @@ public class TypeChecking {
         boolean ok = true;
         if (argument instanceof Abstract.TelescopeArgument) {
           List<String> names = ((Abstract.TelescopeArgument) argument).getNames();
-          arguments.add(Tele(argument.getExplicit(), names, result.expression));
+          arguments.add(Tele(argument.getExplicit(), names, okResult.expression));
           for (int i = 0; i < names.size(); ++i) {
             if (splitArgs != null) {
               List<CompareVisitor.Equation> equations = new ArrayList<>(0);
-              CompareVisitor.Result cmpResult = compare(splitArgs.get(index).getType(), result.expression, equations);
+              CompareVisitor.Result cmpResult = compare(splitArgs.get(index).getType(), okResult.expression, equations);
               if (!(cmpResult instanceof CompareVisitor.JustResult && equations.isEmpty() && (cmpResult.isOK() == CompareVisitor.CMP.EQUIV || cmpResult.isOK() == CompareVisitor.CMP.EQUALS || cmpResult.isOK() == CompareVisitor.CMP.LESS))) {
                 ok = false;
                 break;
               }
             }
 
-            localContext.add(new TypedBinding(names.get(i), result.expression.liftIndex(0, i)));
+            localContext.add(new TypedBinding(names.get(i), okResult.expression.liftIndex(0, i)));
             ++index;
           }
         } else {
           if (splitArgs != null) {
             List<CompareVisitor.Equation> equations = new ArrayList<>(0);
-            CompareVisitor.Result cmpResult = compare(splitArgs.get(index).getType(), result.expression, equations);
+            CompareVisitor.Result cmpResult = compare(splitArgs.get(index).getType(), okResult.expression, equations);
             if (!(cmpResult instanceof CompareVisitor.JustResult && equations.isEmpty() && (cmpResult.isOK() == CompareVisitor.CMP.EQUIV || cmpResult.isOK() == CompareVisitor.CMP.EQUALS || cmpResult.isOK() == CompareVisitor.CMP.LESS))) {
               ok = false;
             }
           }
 
           if (ok) {
-            arguments.add(TypeArg(argument.getExplicit(), result.expression));
-            localContext.add(new TypedBinding((Utils.Name) null, result.expression));
+            arguments.add(TypeArg(argument.getExplicit(), okResult.expression));
+            localContext.add(new TypedBinding((Utils.Name) null, okResult.expression));
             ++index;
           }
         }
@@ -322,19 +326,26 @@ public class TypeChecking {
       expectedType = overriddenResultType;
     }
 
-    FunctionDefinition result;
-    if (def.getOverriddenFunction() != null) {
-      result = new OverriddenDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null, def.getOverriddenFunction());
+    if (result == null) {
+      if (def.getOverriddenFunction() != null) {
+        result = new OverriddenDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null, def.getOverriddenFunction());
+      } else {
+        result = new FunctionDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null);
+      }
+
+      if (!parent.addField(result, moduleLoader.getErrors())) {
+        trimToSize(localContext, origSize);
+        return null;
+      }
     } else {
-      result = new FunctionDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null);
+      result.setArguments(arguments);
+      result.setResultType(expectedType);
+    }
+    if (result.getPrecedence() == null && result.getOverriddenFunction() != null) {
+      result.setPrecedence(result.getOverriddenFunction().getPrecedence());
     }
 
     result.setDependencies(abstractCalls);
-    if (def.getOverriddenFunction() == null && !parent.addField(result, moduleLoader.getErrors())) {
-      trimToSize(localContext, origSize);
-      return null;
-    }
-
     if (expectedType == null) {
       result.typeHasErrors(true);
     }

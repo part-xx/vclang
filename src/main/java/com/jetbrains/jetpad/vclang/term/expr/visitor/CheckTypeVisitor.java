@@ -1359,18 +1359,26 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
 
   @Override
   public Result visitClassExt(Abstract.ClassExtExpression expr, Expression expectedType) {
-    if (expr.getBaseClass().hasErrors()) {
-      TypeCheckingError error = new HasErrors(myParent, expr.getBaseClass().getName(), expr);
-      expr.setWellTyped(Error(DefCall(expr.getBaseClass()), error));
-      myModuleLoader.getTypeCheckingErrors().add(error);
-      return null;
-    }
-
     if (expr.getDefinitions().isEmpty()) {
       return checkResultImplicit(expectedType, new OKResult(DefCall(expr.getBaseClass()), expr.getBaseClass().getType(), null), expr);
     }
 
-    // TODO
+    int i = 0;
+    Universe universe = new Universe.Type(0, Universe.Type.PROP);
+    Map<FunctionDefinition, OverriddenDefinition> definitions = new HashMap<>();
+    for (Abstract.FunctionDefinition functionDefinition : expr.getDefinitions()) {
+      OverriddenDefinition overriddenDefinition = (OverriddenDefinition) expr.getBaseClass().getPublicFields().get(i++);
+      if (TypeChecking.typeCheckFunctionBegin(myModuleLoader, expr.getBaseClass(), functionDefinition, myLocalContext, overriddenDefinition) != null) {
+        TypeChecking.typeCheckFunctionEnd(myModuleLoader, expr.getBaseClass(), functionDefinition.getTerm(), overriddenDefinition, myLocalContext, overriddenDefinition.getOverriddenFunction(), false);
+        if (overriddenDefinition.isAbstract()) {
+          universe = universe.max(overriddenDefinition.getUniverse());
+        }
+        definitions.put(overriddenDefinition.getOverriddenFunction(), overriddenDefinition);
+      }
+    }
+
+    return checkResult(expectedType, new OKResult(ClassExt(expr.getBaseClass(), definitions, universe), new UniverseExpression(universe), null), expr);
+    /*
     Map<String, FunctionDefinition> abstracts = new HashMap<>();
     if (expr.getBaseClass().getPublicFields() != null) {
       for (Definition definition : expr.getBaseClass().getPublicFields()) {
@@ -1398,6 +1406,7 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
       universe = universe.max(definition.getUniverse());
     }
     return checkResultImplicit(expectedType, new OKResult(ClassExt(expr.getBaseClass(), definitions, universe), new UniverseExpression(universe), null), expr);
+    */
   }
 
   @Override

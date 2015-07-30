@@ -1,5 +1,6 @@
 package com.jetbrains.jetpad.vclang.term.expr.visitor;
 
+import com.jetbrains.jetpad.vclang.term.definition.Definition;
 import com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.OverriddenDefinition;
 import com.jetbrains.jetpad.vclang.term.expr.*;
@@ -29,7 +30,7 @@ public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
   }
 
   private TerminationCheckVisitor(FunctionDefinition def, List<Expression> patterns) {
-    myDef = def;
+    myDef = def instanceof OverriddenDefinition ? def.getOverriddenFunction() : def;
     myPatterns = patterns;
   }
 
@@ -63,7 +64,7 @@ public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
     List<Expression> args = new ArrayList<>();
     Expression fun = expr.getFunction(args);
     if (fun instanceof DefCallExpression) {
-      if (((DefCallExpression) fun).getDefinition() == myDef && isLess(args, myPatterns) != Ord.LESS) {
+      if (getOverriddenDefinition(((DefCallExpression) fun).getDefinition()) == myDef && isLess(args, myPatterns) != Ord.LESS) {
         return false;
       }
       if (((DefCallExpression) fun).getParameters() != null) {
@@ -87,9 +88,13 @@ public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
     return true;
   }
 
+  private Definition getOverriddenDefinition(Definition definition) {
+    return definition instanceof OverriddenDefinition ? ((OverriddenDefinition) definition).getOverriddenFunction() : definition;
+  }
+
   @Override
   public Boolean visitDefCall(DefCallExpression expr) {
-    if (!(expr.getDefinition() != myDef && (expr.getExpression() == null || expr.getExpression().accept(this)))) {
+    if (!(getOverriddenDefinition(expr.getDefinition()) != myDef && (expr.getExpression() == null || expr.getExpression().accept(this)))) {
       return false;
     }
     if (expr.getParameters() != null) {

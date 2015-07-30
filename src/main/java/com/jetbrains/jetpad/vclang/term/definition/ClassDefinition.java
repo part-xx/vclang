@@ -178,41 +178,47 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
 
   public FunctionDefinition getFunctionFromSuperClass(String name, List<ModuleError> errors) {
     if (mySuperClasses != null) {
-      List<ClassDefinition> usedSuperClasses = new ArrayList<>(mySuperClasses.size());
+      List<ClassDefinition> superClasses = new ArrayList<>(mySuperClasses);
       if (myPublicFields != null) {
         for (int i = myPublicFields.size() - 1; i >= 0; --i) {
+          if (superClasses.size() == 0) {
+            break;
+          }
           if (!(myPublicFields.get(i) instanceof OverriddenDefinition)) {
             continue;
           }
+
           FunctionDefinition functionDefinition = ((OverriddenDefinition) myPublicFields.get(i)).getOverriddenFunction();
-          for (ClassDefinition superClass : mySuperClasses) {
-            if (superClass.myPublicFields == null) {
+          for (int j = 0; j < superClasses.size(); ++j) {
+            if (superClasses.get(j).myPublicFields == null) {
               continue;
             }
-            int index = superClass.myPublicFields.indexOf(functionDefinition);
+            int index = superClasses.get(j).myPublicFields.indexOf(functionDefinition);
             if (index != -1) {
-              usedSuperClasses.add(superClass);
-              if (index < superClass.myPublicFields.size() - 1) {
-                Definition definition = superClass.myPublicFields.get(index + 1);
+              if (index < superClasses.get(j).myPublicFields.size() - 1) {
+                Definition definition = superClasses.get(j).myPublicFields.get(index + 1);
                 if (definition instanceof FunctionDefinition && definition.getName().name.equals(name)) {
                   return (FunctionDefinition) definition;
                 }
               }
+              superClasses.remove(j--);
             }
           }
         }
       }
 
-      for (ClassDefinition superClass : mySuperClasses) {
-        if (usedSuperClasses.contains(superClass)) {
-          continue;
-        }
-        if (superClass.getPublicFields() != null && superClass.getPublicFields().get(0).getName().name.equals(name) && superClass.getPublicFields().get(0) instanceof FunctionDefinition) {
+      for (ClassDefinition superClass : superClasses) {
+        if (superClass.getPublicFields() != null && superClass.getPublicFields().size() > 0 && superClass.getPublicFields().get(0).getName().name.equals(name) && superClass.getPublicFields().get(0) instanceof FunctionDefinition) {
           return (FunctionDefinition) superClass.getPublicFields().get(0);
         }
       }
     }
+
     errors.add(new ModuleError(new Module(this, name), "Cannot find function " + name + " in the parent classes"));
     return null;
+  }
+
+  public void finishLoading() {
+    // TODO
   }
 }

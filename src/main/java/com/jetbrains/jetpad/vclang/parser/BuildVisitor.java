@@ -117,11 +117,13 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
         FunctionContext functionCtx = (FunctionContext) visit(defOverride.typeTermOpt());
         Concrete.FunctionDefinition definition = visitFunctionRawBegin(true, defOverride.name().size() == 1 ? null : defOverride.name(0), null, defOverride.name().size() == 1 ? defOverride.name(0) : defOverride.name(1), defOverride.tele(), functionCtx);
         if (definition != null) {
-          if (functionCtx.termCtx != null) {
-            definition.setTerm(visitExpr(functionCtx.termCtx));
+          if (myParent.addField(new OverriddenDefinition(definition.getName(), myParent, definition.getPrecedence(), null, null, definition.getArrow(), null, definition.getOverriddenFunction()), myModuleLoader.getErrors())) {
+            definitions.add(definition);
+            if (functionCtx.termCtx != null) {
+              definition.setTerm(visitExpr(functionCtx.termCtx));
+            }
           }
           visitFunctionRawEnd(definition);
-          definitions.add(definition);
         }
       } else {
         myModuleLoader.getErrors().add(new ParserError(myModule, tokenPosition(ctx.getStart()), "Expected an overridden function"));
@@ -161,6 +163,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
       ClassDefinition oldParent = myParent;
       myParent = classDef;
       visitDefClass((DefClassContext) ctx);
+      myParent.finishLoading();
       myOnlyStatics = oldOnlyStatics;
       myParent = oldParent;
 
@@ -290,7 +293,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
   public FunctionDefinition visitDefOverride(DefOverrideContext ctx) {
     if (ctx == null) return null;
     FunctionContext functionCtx = (FunctionContext) visit(ctx.typeTermOpt());
-    return visitDefFunction(true, ctx.name().size() == 1 ? null : ctx.name(0), null, ctx.name().size() == 1 ? ctx.name(0) : ctx.name(1), ctx.tele(), functionCtx);
+    return visitDefFunction(true, ctx.name().size() == 1 ? null : ctx.name(0), ctx.precedence() instanceof NoPrecedenceContext ? null : ctx.precedence(), ctx.name().size() == 1 ? ctx.name(0) : ctx.name(1), ctx.tele(), functionCtx);
   }
 
   private FunctionDefinition visitDefFunction(boolean overridden, NameContext originalName, PrecedenceContext precCtx, NameContext nameCtx, List<TeleContext> teleCtx, FunctionContext functionCtx) {
@@ -804,6 +807,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
       ClassDefinition oldParent = myParent;
       myParent = newParent;
       List<Concrete.FunctionDefinition> definitions = visitDefsRaw(ctx.classFields().defs());
+      myParent.finishLoading();
       myParent = oldParent;
 
       expr = new Concrete.ClassExtExpression(tokenPosition(ctx.getStart()), newParent, definitions);
