@@ -23,7 +23,6 @@ public class FunctionDefinition extends Definition implements Abstract.FunctionD
 
   public FunctionDefinition(Utils.Name name, Definition parent, Precedence precedence, List<Argument> arguments, Expression resultType, Arrow arrow, Expression term) {
     super(name, parent, precedence);
-    setUniverse(new Universe.Type(0, Universe.Type.PROP));
     hasErrors(false);
     myArguments = arguments;
     myResultType = resultType;

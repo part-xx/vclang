@@ -32,7 +32,7 @@ public class RecordsTest {
   public void unknownExtTestError() {
     ModuleLoader moduleLoader = new ModuleLoader();
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
-    parseDefs(moduleLoader, "\\class Point { \\function x : Nat \\function y : Nat } \\function C => Point { \\override x => 0 \\override z => 0 \\override y => 0 }", 1);
+    parseDefs(moduleLoader, "\\class Point { \\function x : Nat \\function y : Nat } \\function C => Point { \\override x => 0 \\override z => 0 \\override y => 0 }", 1, 0);
   }
 
   @Test
@@ -72,7 +72,7 @@ public class RecordsTest {
           "\\function c : Nat -> Nat -> Nat\n" +
           "\\function f : Nat -> Nat\n" +
         "}\n" +
-          "\\function B => A {\n" +
+        "\\function B => A {\n" +
           "\\override f n <= c n n\n" +
         "}");
   }
