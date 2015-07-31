@@ -216,7 +216,8 @@ public class RecordsTest {
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
     ClassDefinition result = parseDefs(moduleLoader, "\\class Point { \\function x : Nat \\function y : Nat } \\function C => Point { \\override x => 0 }");
     assertEquals(new Universe.Type(0, Universe.Type.SET), result.getPublicField("Point").getUniverse());
-    assertEquals(new Universe.Type(0, Universe.Type.SET), result.getPublicField("C").getUniverse());
+    assertEquals(new UniverseExpression(new Universe.Type(0, Universe.Type.SET)), result.getPublicField("C").getType());
+    assertEquals(new Universe.Type(1, Universe.Type.SET), result.getPublicField("C").getUniverse());
   }
 
   @Test

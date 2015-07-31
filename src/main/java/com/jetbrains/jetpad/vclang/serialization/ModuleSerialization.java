@@ -50,6 +50,7 @@ public class ModuleSerialization {
     if (definition instanceof FunctionDefinition) {
       FunctionDefinition functionDefinition = (FunctionDefinition) definition;
       writeDefinition(visitor.getDataStream(), definition);
+      writeUniverse(visitor.getDataStream(), definition.getUniverse());
       if (definition instanceof OverriddenDefinition) {
         visitor.getDataStream().writeInt(visitor.getDefinitionsIndices().getDefinitionIndex(((OverriddenDefinition) definition).getOverriddenFunction()));
       }

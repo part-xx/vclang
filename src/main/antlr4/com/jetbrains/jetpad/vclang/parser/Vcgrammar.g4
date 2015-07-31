@@ -3,7 +3,7 @@ grammar Vcgrammar;
 defs  : def*;
 
 def   : '\\function' precedence name tele* typeTermOpt                          # defFunction
-      | '\\override' name ('\\as' precedence name)? tele* typeTermOpt           # defOverride
+      | '\\override' name ('\\as' precedence name)? tele* typeTermOpt?          # defOverride
       | '\\data' precedence name tele* (':' expr)? constructor*                 # defData
       | '\\class' ID tele* ('\\extends' longName (',' longName)*)? classFields  # defClass
       | nsCmd longName ('(' name (',' name)* ')')?                              # defCmd

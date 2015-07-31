@@ -124,6 +124,7 @@ public class ModuleDeserialization {
         throw new IncorrectFormat();
       }
       readDefinition(stream, definition);
+      definition.setUniverse(readUniverse(stream));
       FunctionDefinition functionDefinition = (FunctionDefinition) definition;
       if (code == ModuleSerialization.OVERRIDDEN_CODE) {
         Definition overridden = definitionMap.get(stream.readInt());

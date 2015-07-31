@@ -114,7 +114,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
     for (DefContext def : ctx.def()) {
       if (def instanceof DefOverrideContext) {
         DefOverrideContext defOverride = (DefOverrideContext) def;
-        FunctionContext functionCtx = (FunctionContext) visit(defOverride.typeTermOpt());
+        FunctionContext functionCtx = visitTypeTermOpt(defOverride.typeTermOpt());
         Concrete.FunctionDefinition definition = visitFunctionRawBegin(true, defOverride.name().size() == 1 ? null : defOverride.name(0), null, defOverride.name().size() == 1 ? defOverride.name(0) : defOverride.name(1), defOverride.tele(), functionCtx);
         if (definition != null) {
           if (myParent.addField(new OverriddenDefinition(definition.getName(), myParent, definition.getPrecedence(), null, null, definition.getArrow(), null, definition.getOverriddenFunction()), myModuleLoader.getErrors())) {
@@ -247,6 +247,13 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
     ExprContext termCtx;
   }
 
+  private FunctionContext visitTypeTermOpt(TypeTermOptContext ctx) {
+    if (ctx == null) {
+      return new FunctionContext();
+    }
+    return (FunctionContext) visit(ctx);
+  }
+
   @Override
   public FunctionContext visitWithType(WithTypeContext ctx) {
     FunctionContext result = new FunctionContext();
@@ -277,7 +284,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
   @Override
   public FunctionDefinition visitDefFunction(DefFunctionContext ctx) {
     if (ctx == null) return null;
-    FunctionContext functionCtx = (FunctionContext) visit(ctx.typeTermOpt());
+    FunctionContext functionCtx = visitTypeTermOpt(ctx.typeTermOpt());
     if (functionCtx.termCtx == null && myOnlyStatics) {
       Name name = getName(ctx.name());
       if (name == null) {
@@ -292,7 +299,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
   @Override
   public FunctionDefinition visitDefOverride(DefOverrideContext ctx) {
     if (ctx == null) return null;
-    FunctionContext functionCtx = (FunctionContext) visit(ctx.typeTermOpt());
+    FunctionContext functionCtx = visitTypeTermOpt(ctx.typeTermOpt());
     return visitDefFunction(true, ctx.name().size() == 1 ? null : ctx.name(0), ctx.precedence() instanceof NoPrecedenceContext ? null : ctx.precedence(), ctx.name().size() == 1 ? ctx.name(0) : ctx.name(1), ctx.tele(), functionCtx);
   }
 

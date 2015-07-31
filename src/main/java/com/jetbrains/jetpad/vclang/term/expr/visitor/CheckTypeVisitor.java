@@ -1421,12 +1421,26 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
     if (!(exprResult instanceof OKResult)) return exprResult;
     OKResult okExprResult = (OKResult) exprResult;
     Expression normExpr = okExprResult.expression.accept(new NormalizeVisitor(NormalizeVisitor.Mode.WHNF, myLocalContext));
-    if (!(normExpr instanceof DefCallExpression && ((DefCallExpression) normExpr).getDefinition() instanceof ClassDefinition || normExpr instanceof ClassExtExpression)) {
+    ClassDefinition classDefinition;
+    if (normExpr instanceof DefCallExpression && ((DefCallExpression) normExpr).getDefinition() instanceof ClassDefinition) {
+      classDefinition = (ClassDefinition) ((DefCallExpression) normExpr).getDefinition();
+    } else
+    if (normExpr instanceof ClassExtExpression) {
+      classDefinition = ((ClassExtExpression) normExpr).getBaseClass();
+    } else {
       TypeCheckingError error = new TypeCheckingError(myParent, "Expected a class", expr.getExpression(), getNames(myLocalContext));
       expr.setWellTyped(Error(null, error));
       myModuleLoader.getTypeCheckingErrors().add(error);
       return null;
     }
+
+    if (classDefinition.hasAbstracts()) {
+      TypeCheckingError error = new TypeCheckingError(myParent, "Cannot create an instance of an abstract class", expr.getExpression(), getNames(myLocalContext));
+      expr.setWellTyped(Error(null, error));
+      myModuleLoader.getTypeCheckingErrors().add(error);
+      return null;
+    }
+
     return checkResultImplicit(expectedType, new OKResult(New(okExprResult.expression), normExpr, okExprResult.equations), expr);
   }
 
