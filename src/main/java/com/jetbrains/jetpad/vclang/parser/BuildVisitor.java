@@ -117,7 +117,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
         FunctionContext functionCtx = visitTypeTermOpt(defOverride.typeTermOpt());
         Concrete.FunctionDefinition definition = visitFunctionRawBegin(true, defOverride.name().size() == 1 ? null : defOverride.name(0), null, defOverride.name().size() == 1 ? defOverride.name(0) : defOverride.name(1), defOverride.tele(), functionCtx);
         if (definition != null) {
-          if (myParent.addField(new OverriddenDefinition(definition.getName(), myParent, definition.getPrecedence(), null, null, definition.getArrow(), null, definition.getOverriddenFunction()), myModuleLoader.getErrors())) {
+          if (myParent.addField(new OverriddenDefinition(definition.getName(), myParent, definition.getPrecedence(), null, null, definition.getArrow(), null, definition.getOverriddenFunction()), myModuleLoader.getErrors()) != null) {
             definitions.add(definition);
             if (functionCtx.termCtx != null) {
               definition.setTerm(visitExpr(functionCtx.termCtx));
@@ -214,10 +214,14 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
           myParent.removeField(definition);
         } else {
           if (!definition.isAbstract() && (definition.getDependencies() == null || definition.getDependencies().isEmpty())) {
-            myParent.addPrivateField(definition);
             if (export) {
-              myParent.addPublicField(definition, myModuleLoader.getErrors());
-              myParent.addStaticField(definition, myModuleLoader.getErrors());
+              definition = myParent.addPublicField(definition, myModuleLoader.getErrors());
+              if (definition != null) {
+                myParent.addStaticField(definition, myModuleLoader.getErrors());
+              }
+            }
+            if (definition != null) {
+              myParent.addPrivateField(definition);
             }
           }
         }
@@ -229,10 +233,14 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
           myParent.removeField(definition);
         } else {
           if (!definition.isAbstract() && (definition.getDependencies() == null || definition.getDependencies().isEmpty())) {
-            myParent.addPrivateField(definition);
             if (export) {
-              myParent.addPublicField(definition, myModuleLoader.getErrors());
-              myParent.addStaticField(definition, myModuleLoader.getErrors());
+              definition = myParent.addPublicField(definition, myModuleLoader.getErrors());
+              if (definition != null) {
+                myParent.addStaticField(definition, myModuleLoader.getErrors());
+              }
+            }
+            if (definition != null) {
+              myParent.addPrivateField(definition);
             }
           }
         }

@@ -215,8 +215,8 @@ public class ModuleDeserialization {
       if (field.getParent() == definition) {
         deserializeDefinition(stream, definitionMap, field);
       }
-      definition.addField(field, myModuleLoader.getErrors());
-      if (!definition.hasErrors()) {
+      field = definition.addField(field, myModuleLoader.getErrors());
+      if (field != null && !definition.hasErrors()) {
         TypeChecking.checkOnlyStatic(myModuleLoader, definition, field, field.getName());
       }
     }

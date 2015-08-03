@@ -56,7 +56,8 @@ public class TypeChecking {
 
     DataDefinition result = new DataDefinition(def.getName(), parent, def.getPrecedence(), def.getUniverse() != null ? def.getUniverse() : new Universe.Type(0, Universe.Type.PROP), parameters, new ArrayList<Constructor>());
     result.setDependencies(abstractCalls);
-    if (!parent.addField(result, moduleLoader.getErrors())) {
+    if (parent.addField(result, moduleLoader.getErrors()) == null) {
+      trimToSize(localContext, origSize);
       return null;
     }
     return result;
@@ -96,8 +97,9 @@ public class TypeChecking {
     }
     parent.addStaticField(definition, moduleLoader.getErrors());
     for (Constructor constructor : definition.getConstructors()) {
-      parent.addPublicField(constructor, moduleLoader.getErrors());
-      parent.addStaticField(constructor, moduleLoader.getErrors());
+      if (parent.addPublicField(constructor, moduleLoader.getErrors()) != null) {
+        parent.addStaticField(constructor, moduleLoader.getErrors());
+      }
     }
     return true;
   }
@@ -333,7 +335,7 @@ public class TypeChecking {
         result = new FunctionDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null);
       }
 
-      if (!parent.addField(result, moduleLoader.getErrors())) {
+      if (parent.addField(result, moduleLoader.getErrors()) == null) {
         trimToSize(localContext, origSize);
         return null;
       }

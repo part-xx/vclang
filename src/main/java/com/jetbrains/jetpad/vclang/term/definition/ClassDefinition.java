@@ -108,18 +108,21 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
     return false;
   }
 
-  public boolean addPublicField(Definition definition, List<ModuleError> errors) {
+  public Definition addPublicField(Definition definition, List<ModuleError> errors) {
     Definition oldDefinition = getPublicField(definition.getName().name);
-    if (oldDefinition != null && !(oldDefinition instanceof ClassDefinition && definition instanceof ClassDefinition && (!((ClassDefinition) oldDefinition).hasAbstracts() || !((ClassDefinition) definition).hasAbstracts()))) {
-      errors.add(new ModuleError(new Module(this, definition.getName().name), "Name is already defined"));
-      return false;
+    if (oldDefinition != null) {
+      if (!(oldDefinition instanceof ClassDefinition && definition instanceof ClassDefinition && (!((ClassDefinition) oldDefinition).hasAbstracts() || !((ClassDefinition) definition).hasAbstracts()))) {
+        errors.add(new ModuleError(new Module(this, definition.getName().name), "Name is already defined"));
+        return null;
+      }
+      definition = oldDefinition;
     }
 
     if (myPublicFields == null) {
       myPublicFields = new ArrayList<>();
     }
     myPublicFields.add(definition);
-    return true;
+    return definition;
   }
 
   public void addPrivateField(Definition definition) {
@@ -161,10 +164,13 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
     return true;
   }
 
-  public boolean addField(Definition definition, List<ModuleError> errors) {
-    if (!addPublicField(definition, errors)) return false;
+  public Definition addField(Definition definition, List<ModuleError> errors) {
+    definition = addPublicField(definition, errors);
+    if (definition == null) {
+      return null;
+    }
     addPrivateField(definition);
-    return true;
+    return definition;
   }
 
   public void removeField(Definition definition) {
