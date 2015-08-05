@@ -1,4 +1,4 @@
-package com.jetbrains.jetpad.vclang.record;
+package com.jetbrains.jetpad.vclang.classes;
 
 import com.jetbrains.jetpad.vclang.module.DummyOutputSupplier;
 import com.jetbrains.jetpad.vclang.module.DummySourceSupplier;

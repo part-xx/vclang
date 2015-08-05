@@ -154,4 +154,13 @@ public class ComparisonTest {
     Definition def2 = parseDef(moduleLoader, "\\function test => \\let | x => 0 | y => 1 \\in zero");
     assertEquals(((FunctionDefinition) def1).getTerm(), ((FunctionDefinition) def2).getTerm());
   }
+
+  @Test
+  public void comparisonAppTest() {
+    Expression expr1 = Apps(Index(0), Universe(0));
+    Expression expr2 = Apps(Index(0), Universe(1));
+    List<CompareVisitor.Equation> equations = new ArrayList<>();
+    CompareVisitor.Result result = compare(expr1, expr2, equations);
+    assertTrue(result.isOK() == CompareVisitor.CMP.EQUIV);
+  }
 }

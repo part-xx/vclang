@@ -2,6 +2,7 @@ package com.jetbrains.jetpad.vclang.term.expr.visitor;
 
 import com.jetbrains.jetpad.vclang.term.Abstract;
 import com.jetbrains.jetpad.vclang.term.Prelude;
+import com.jetbrains.jetpad.vclang.term.definition.ClassDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.Definition;
 import com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.OverriddenDefinition;
@@ -284,24 +285,19 @@ public class CompareVisitor implements AbstractExpressionVisitor<Expression, Com
     if (lamResult != null) return lamResult;
     if (!(other instanceof DefCallExpression)) return new JustResult(CMP.NOT_EQUIV);
     DefCallExpression otherDefCall = (DefCallExpression) other;
-    List<? extends Definition> definitions1;
-    if (expr.getDefinition() instanceof OverriddenDefinition) {
-      definitions1 = ((OverriddenDefinition) expr.getDefinition()).getOverriddenFunctions();
+    if (expr.getDefinition() instanceof OverriddenDefinition && otherDefCall.getDefinition() instanceof OverriddenDefinition) {
+      List<? extends Definition> definitions1 = ((OverriddenDefinition) expr.getDefinition()).getOverriddenFunctions();
+      List<? extends Definition> definitions2 = ((OverriddenDefinition) otherDefCall.getDefinition()).getOverriddenFunctions();
+      if (Collections.disjoint(definitions1, definitions2)) {
+        return new JustResult(CMP.NOT_EQUIV);
+      }
+    } else
+    if (expr.getDefinition() instanceof ClassDefinition && otherDefCall.getDefinition() instanceof ClassDefinition) {
+      // TODO
     } else {
-      List<Definition> definitions = new ArrayList<>();
-      definitions.add(expr.getDefinition());
-      definitions1 = definitions;
-    }
-    List<? extends Definition> definitions2;
-    if (otherDefCall.getDefinition() instanceof OverriddenDefinition) {
-      definitions2 = ((OverriddenDefinition) otherDefCall.getDefinition()).getOverriddenFunctions();
-    } else {
-      List<Definition> definitions = new ArrayList<>();
-      definitions.add(otherDefCall.getDefinition());
-      definitions2 = definitions;
-    }
-    if (Collections.disjoint(definitions1, definitions2)) {
-      return new JustResult(CMP.NOT_EQUIV);
+      if (expr.getDefinition() != otherDefCall.getDefinition()) {
+        return new JustResult(CMP.NOT_EQUIV);
+      }
     }
     if (expr.getExpression() == null || otherDefCall.getExpression() == null) {
       return new JustResult(CMP.EQUALS);
