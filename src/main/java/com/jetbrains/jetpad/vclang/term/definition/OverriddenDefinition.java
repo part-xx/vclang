@@ -7,42 +7,24 @@ import com.jetbrains.jetpad.vclang.term.expr.arg.Utils;
 import java.util.List;
 
 public class OverriddenDefinition extends FunctionDefinition {
-  private FunctionDefinition myOverriddenFunction;
+  private List<FunctionDefinition> myOverriddenFunctions;
 
   public OverriddenDefinition(Utils.Name name, Definition parent, Precedence precedence, Arrow arrow) {
     super(name, parent, precedence, arrow);
-    myOverriddenFunction = null;
+    myOverriddenFunctions = null;
   }
 
-  public OverriddenDefinition(Utils.Name name, Definition parent, Precedence precedence, List<Argument> arguments, Expression resultType, Arrow arrow, Expression term, FunctionDefinition overriddenFunction) {
+  public OverriddenDefinition(Utils.Name name, Definition parent, Precedence precedence, List<Argument> arguments, Expression resultType, Arrow arrow, Expression term, List<FunctionDefinition> overriddenFunctions) {
     super(name, parent, precedence, arguments, resultType, arrow, term);
-    myOverriddenFunction = overriddenFunction;
+    myOverriddenFunctions = overriddenFunctions;
   }
 
   @Override
-  public FunctionDefinition getOverriddenFunction() {
-    return myOverriddenFunction;
+  public List<FunctionDefinition> getOverriddenFunctions() {
+    return myOverriddenFunctions;
   }
 
-  public void setOverriddenFunction(FunctionDefinition overriddenFunction) {
-    myOverriddenFunction = overriddenFunction;
-  }
-
-  @Override
-  public List<Argument> getArguments() {
-    if (super.getArguments() == null) return myOverriddenFunction.getArguments();
-    return super.getArguments();
-  }
-
-  @Override
-  public Expression getResultType() {
-    if (super.getResultType() == null) return myOverriddenFunction.getResultType();
-    return super.getResultType();
-  }
-
-  @Override
-  public Expression getType() {
-    if (getArguments() == null || getResultType() == null) return myOverriddenFunction.getType();
-    return super.getType();
+  public void setOverriddenFunctions(List<FunctionDefinition> overriddenFunctions) {
+    myOverriddenFunctions = overriddenFunctions;
   }
 }

@@ -20,7 +20,7 @@ public class DefinitionPrettyPrintVisitor implements AbstractDefinitionVisitor<V
 
   @Override
   public Void visitFunction(Abstract.FunctionDefinition def, Void ignored) {
-    myBuilder.append(def.getOverriddenFunction() != null ? "\\overridden" : "\\function");
+    myBuilder.append(def.getOverriddenFunctions() != null ? "\\overridden" : "\\function");
     if (def.getPrecedence() != null && !def.getPrecedence().equals(Abstract.Definition.DEFAULT_PRECEDENCE)) {
       myBuilder.append(" \\infix");
       if (def.getPrecedence().associativity == Abstract.Definition.Associativity.LEFT_ASSOC) myBuilder.append('l');
@@ -31,8 +31,8 @@ public class DefinitionPrettyPrintVisitor implements AbstractDefinitionVisitor<V
     myBuilder.append('\n');
     PrettyPrintVisitor.printIndent(myBuilder, myIndent);
 
-    if (def.getOverriddenFunction() != null && !def.getOverriddenFunction().getName().equals(def.getName())) {
-      myBuilder.append(def.getOverriddenFunction().getName()).append("\\as");
+    if (def.getOverriddenFunctions() != null && !def.getOverriddenFunctions().get(0).getName().equals(def.getName())) {
+      myBuilder.append(def.getOverriddenFunctions().get(0).getName()).append("\\as");
     }
     myBuilder.append(def.getName());
     if (def.getArguments() != null) {

@@ -46,7 +46,7 @@ public class FunctionDefinition extends Definition implements Abstract.FunctionD
   }
 
   @Override
-  public FunctionDefinition getOverriddenFunction() {
+  public List<FunctionDefinition> getOverriddenFunctions() {
     return null;
   }
 

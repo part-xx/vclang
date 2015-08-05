@@ -740,16 +740,16 @@ public final class Concrete {
     private final Abstract.Definition.Arrow myArrow;
     private final List<Argument> myArguments;
     private final Expression myResultType;
-    private final com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition myOverriddenFunction;
+    private final List<com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition> myOverriddenFunctions;
     private Expression myTerm;
 
-    public FunctionDefinition(Position position, Name name, Precedence precedence, List<Argument> arguments, Expression resultType, Abstract.Definition.Arrow arrow, Expression term, com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition overriddenFunction) {
+    public FunctionDefinition(Position position, Name name, Precedence precedence, List<Argument> arguments, Expression resultType, Abstract.Definition.Arrow arrow, Expression term, List<com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition> overriddenFunctions) {
       super(position, name, precedence, null);
       myArguments = arguments;
       myResultType = resultType;
       myArrow = arrow;
       myTerm = term;
-      myOverriddenFunction = overriddenFunction;
+      myOverriddenFunctions = overriddenFunctions;
     }
 
     @Override
@@ -763,8 +763,8 @@ public final class Concrete {
     }
 
     @Override
-    public com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition getOverriddenFunction() {
-      return myOverriddenFunction;
+    public List<com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition> getOverriddenFunctions() {
+      return myOverriddenFunctions;
     }
 
     @Override

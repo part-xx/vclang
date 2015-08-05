@@ -1,5 +1,6 @@
 package com.jetbrains.jetpad.vclang.term.expr.visitor;
 
+import com.jetbrains.jetpad.vclang.term.definition.ClassDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.Definition;
 import com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.OverriddenDefinition;
@@ -158,6 +159,7 @@ public class ReplaceDefCallVisitor implements ExpressionVisitor<Expression> {
   @Override
   public Expression visitClassExt(ClassExtExpression expr) {
     Map<FunctionDefinition, OverriddenDefinition> definitions = new HashMap<>();
+    ClassDefinition baseClass = new ClassDefinition(expr.getBaseClass().getName().name, expr.getBaseClass().getParent(), expr.getBaseClass().getSuperClasses());
     for (Map.Entry<FunctionDefinition, OverriddenDefinition> entry : expr.getDefinitionsMap().entrySet()) {
       List<Argument> arguments = null;
       if (entry.getValue().getArguments() != null) {
@@ -178,10 +180,11 @@ public class ReplaceDefCallVisitor implements ExpressionVisitor<Expression> {
 
       Expression resultType = entry.getValue().getResultType() == null ? null : entry.getValue().getResultType().accept(this);
       Expression term = entry.getValue().getTerm() == null ? null : entry.getValue().getTerm().accept(this);
-      OverriddenDefinition definition = new OverriddenDefinition(entry.getValue().getName(), entry.getValue().getParent(), entry.getValue().getPrecedence(), arguments, resultType, entry.getValue().getArrow(), term, entry.getValue().getOverriddenFunction());
+      OverriddenDefinition definition = new OverriddenDefinition(entry.getValue().getName(), baseClass, entry.getValue().getPrecedence(), arguments, resultType, entry.getValue().getArrow(), term, entry.getValue().getOverriddenFunctions());
       definitions.put(entry.getKey(), definition);
+      baseClass.addPublicField(definition, null);
     }
-    return ClassExt(expr.getBaseClass(), definitions, expr.getUniverse());
+    return ClassExt(baseClass, definitions, expr.getUniverse());
   }
 
   @Override

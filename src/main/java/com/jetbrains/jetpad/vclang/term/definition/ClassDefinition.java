@@ -194,7 +194,8 @@ public class ClassDefinition extends Definition implements Abstract.ClassDefinit
             continue;
           }
 
-          FunctionDefinition functionDefinition = ((OverriddenDefinition) myPublicFields.get(i)).getOverriddenFunction();
+          // TODO: why only get(0)?
+          FunctionDefinition functionDefinition = ((OverriddenDefinition) myPublicFields.get(i)).getOverriddenFunctions().get(0);
           for (int j = 0; j < superClasses.size(); ++j) {
             if (superClasses.get(j).myPublicFields == null) {
               continue;

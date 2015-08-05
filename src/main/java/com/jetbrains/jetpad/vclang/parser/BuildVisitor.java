@@ -117,7 +117,7 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
         FunctionContext functionCtx = visitTypeTermOpt(defOverride.typeTermOpt());
         Concrete.FunctionDefinition definition = visitFunctionRawBegin(true, defOverride.name().size() == 1 ? null : defOverride.name(0), null, defOverride.name().size() == 1 ? defOverride.name(0) : defOverride.name(1), defOverride.tele(), functionCtx);
         if (definition != null) {
-          if (myParent.addField(new OverriddenDefinition(definition.getName(), myParent, definition.getPrecedence(), null, null, definition.getArrow(), null, definition.getOverriddenFunction()), myModuleLoader.getErrors()) != null) {
+          if (myParent.addField(new OverriddenDefinition(definition.getName(), myParent, definition.getPrecedence(), null, null, definition.getArrow(), null, definition.getOverriddenFunctions()), myModuleLoader.getErrors()) != null) {
             definitions.add(definition);
             if (functionCtx.termCtx != null) {
               definition.setTerm(visitExpr(functionCtx.termCtx));
@@ -346,14 +346,16 @@ public class BuildVisitor extends VcgrammarBaseVisitor {
 
     Concrete.Expression type = functionCtx.typeCtx == null ? null : visitExpr(functionCtx.typeCtx);
     Definition.Arrow arrow = functionCtx.arrowCtx instanceof ArrowLeftContext ? Abstract.Definition.Arrow.LEFT : functionCtx.arrowCtx instanceof ArrowRightContext ? Abstract.Definition.Arrow.RIGHT : null;
-    FunctionDefinition overriddenFunction = null;
+    List<FunctionDefinition> overriddenFunctions = null;
     if (originalName != null) {
-      overriddenFunction = myParent.getFunctionFromSuperClass(originalName.name, myModuleLoader.getErrors());
+      FunctionDefinition overriddenFunction = myParent.getFunctionFromSuperClass(originalName.name, myModuleLoader.getErrors());
       if (overriddenFunction == null) {
         return null;
       }
+      overriddenFunctions = new ArrayList<>(1);
+      overriddenFunctions.add(overriddenFunction);
     }
-    return new Concrete.FunctionDefinition(name.position, name, precCtx == null ? null : visitPrecedence(precCtx), arguments, type, arrow, null, overriddenFunction);
+    return new Concrete.FunctionDefinition(name.position, name, precCtx == null ? null : visitPrecedence(precCtx), arguments, type, arrow, null, overriddenFunctions);
   }
 
   private void visitFunctionRawEnd(Concrete.FunctionDefinition definition) {

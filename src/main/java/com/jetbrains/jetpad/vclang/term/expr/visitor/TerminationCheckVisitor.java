@@ -10,27 +10,28 @@ import com.jetbrains.jetpad.vclang.term.expr.arg.TelescopeArgument;
 import com.jetbrains.jetpad.vclang.term.expr.arg.TypeArgument;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.jetbrains.jetpad.vclang.term.expr.ExpressionFactory.*;
 import static com.jetbrains.jetpad.vclang.term.expr.arg.Utils.numberOfVariables;
 
 public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
-  private final FunctionDefinition myDef;
+  private final List<FunctionDefinition> myDefs;
   private final List<Expression> myPatterns;
 
-  public TerminationCheckVisitor(FunctionDefinition def) {
-    myDef = def;
+  public TerminationCheckVisitor(List<FunctionDefinition> defs) {
+    myDefs = defs;
 
-    int vars = numberOfVariables(def.getArguments());
+    int vars = numberOfVariables(defs.get(0).getArguments());
     myPatterns = new ArrayList<>(vars);
     for (int i = 0; i < vars; ++i) {
       myPatterns.add(Index(i));
     }
   }
 
-  private TerminationCheckVisitor(FunctionDefinition def, List<Expression> patterns) {
-    myDef = def instanceof OverriddenDefinition ? def.getOverriddenFunction() : def;
+  private TerminationCheckVisitor(List<FunctionDefinition> defs, List<Expression> patterns) {
+    myDefs = defs;
     myPatterns = patterns;
   }
 
@@ -64,7 +65,7 @@ public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
     List<Expression> args = new ArrayList<>();
     Expression fun = expr.getFunction(args);
     if (fun instanceof DefCallExpression) {
-      if (getOverriddenDefinition(((DefCallExpression) fun).getDefinition()) == myDef && isLess(args, myPatterns) != Ord.LESS) {
+      if (isOverriddenDefinition(((DefCallExpression) fun).getDefinition()) && (((DefCallExpression) fun).getExpression() != null || isLess(args, myPatterns) != Ord.LESS)) {
         return false;
       }
       if (((DefCallExpression) fun).getParameters() != null) {
@@ -88,13 +89,17 @@ public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
     return true;
   }
 
-  private Definition getOverriddenDefinition(Definition definition) {
-    return definition instanceof OverriddenDefinition ? ((OverriddenDefinition) definition).getOverriddenFunction() : definition;
+  private boolean isOverriddenDefinition(Definition definition) {
+    if (definition instanceof OverriddenDefinition) {
+      return !Collections.disjoint(myDefs, ((OverriddenDefinition) definition).getOverriddenFunctions());
+    } else {
+      return definition instanceof FunctionDefinition && myDefs.contains(definition);
+    }
   }
 
   @Override
   public Boolean visitDefCall(DefCallExpression expr) {
-    if (!(getOverriddenDefinition(expr.getDefinition()) != myDef && (expr.getExpression() == null || expr.getExpression().accept(this)))) {
+    if (isOverriddenDefinition(expr.getDefinition()) || expr.getExpression() != null && !expr.getExpression().accept(this)) {
       return false;
     }
     if (expr.getParameters() != null) {
@@ -251,7 +256,7 @@ public class TerminationCheckVisitor implements ExpressionVisitor<Boolean> {
         patterns.add(pattern.liftIndex(var + 1, vars).subst(newExpr, var));
       }
 
-      if (!clause.getExpression().accept(new TerminationCheckVisitor(myDef, patterns))) {
+      if (!clause.getExpression().accept(new TerminationCheckVisitor(myDefs, patterns))) {
         return false;
       }
     }

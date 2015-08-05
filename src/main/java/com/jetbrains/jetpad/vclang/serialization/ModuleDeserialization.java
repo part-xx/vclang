@@ -127,11 +127,19 @@ public class ModuleDeserialization {
       definition.setUniverse(readUniverse(stream));
       FunctionDefinition functionDefinition = (FunctionDefinition) definition;
       if (code == ModuleSerialization.OVERRIDDEN_CODE) {
-        Definition overridden = definitionMap.get(stream.readInt());
-        if (!(overridden instanceof FunctionDefinition && functionDefinition instanceof OverriddenDefinition)) {
+        if (!(functionDefinition instanceof OverriddenDefinition)) {
           throw new IncorrectFormat();
         }
-        ((OverriddenDefinition) functionDefinition).setOverriddenFunction((FunctionDefinition) overridden);
+        int size = stream.readInt();
+        List<FunctionDefinition> overriddenFunctions = new ArrayList<>(size);
+        for (int i = 0; i < size; ++i) {
+          Definition overridden = definitionMap.get(stream.readInt());
+          if (!(overridden instanceof FunctionDefinition)) {
+            throw new IncorrectFormat();
+          }
+          overriddenFunctions.add((FunctionDefinition) overridden);
+        }
+        ((OverriddenDefinition) functionDefinition).setOverriddenFunctions(overriddenFunctions);
       }
 
       functionDefinition.typeHasErrors(stream.readBoolean());

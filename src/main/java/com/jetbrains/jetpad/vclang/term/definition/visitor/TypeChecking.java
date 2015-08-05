@@ -189,9 +189,10 @@ public class TypeChecking {
 
     List<TypeArgument> splitArgs = null;
     Expression splitResult = null;
-    if (def.getOverriddenFunction() != null) {
+    if (def.getOverriddenFunctions() != null) {
       splitArgs = new ArrayList<>();
-      splitResult = splitArguments(def.getOverriddenFunction().getType(), splitArgs);
+      // TODO: Take intersection of types.
+      splitResult = splitArguments(def.getOverriddenFunctions().get(0).getType(), splitArgs);
     }
 
     int index = 0;
@@ -329,8 +330,8 @@ public class TypeChecking {
     }
 
     if (result == null) {
-      if (def.getOverriddenFunction() != null) {
-        result = new OverriddenDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null, def.getOverriddenFunction());
+      if (def.getOverriddenFunctions() != null) {
+        result = new OverriddenDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null, def.getOverriddenFunctions());
       } else {
         result = new FunctionDefinition(def.getName(), parent, def.getPrecedence(), arguments, expectedType, def.getArrow(), null);
       }
@@ -343,8 +344,8 @@ public class TypeChecking {
       result.setArguments(arguments);
       result.setResultType(expectedType);
     }
-    if (result.getPrecedence() == null && result.getOverriddenFunction() != null) {
-      result.setPrecedence(result.getOverriddenFunction().getPrecedence());
+    if (result.getPrecedence() == null && result.getOverriddenFunctions() != null) {
+      result.setPrecedence(result.getOverriddenFunctions().get(0).getPrecedence());
     }
 
     result.setDependencies(abstractCalls);
@@ -354,7 +355,7 @@ public class TypeChecking {
     return result;
   }
 
-  public static boolean typeCheckFunctionEnd(ModuleLoader moduleLoader, ClassDefinition parent, Abstract.Expression term, FunctionDefinition definition, List<Binding> localContext, FunctionDefinition overriddenFunction, boolean onlyStatics) {
+  public static boolean typeCheckFunctionEnd(ModuleLoader moduleLoader, ClassDefinition parent, Abstract.Expression term, FunctionDefinition definition, List<Binding> localContext, List<FunctionDefinition> overriddenFunctions, boolean onlyStatics) {
     if (term != null) {
       CheckTypeVisitor visitor = new CheckTypeVisitor(parent, localContext, definition.getDependencies(), moduleLoader, CheckTypeVisitor.Side.LHS);
       CheckTypeVisitor.OKResult termResult = visitor.checkType(term, definition.getResultType());
@@ -363,7 +364,11 @@ public class TypeChecking {
         definition.setTerm(termResult.expression);
         definition.setResultType(termResult.type);
 
-        if (!termResult.expression.accept(new TerminationCheckVisitor(overriddenFunction == null ? definition : overriddenFunction))) {
+        if (overriddenFunctions == null) {
+          overriddenFunctions = new ArrayList<>(1);
+          overriddenFunctions.add(definition);
+        }
+        if (!termResult.expression.accept(new TerminationCheckVisitor(overriddenFunctions))) {
           moduleLoader.getTypeCheckingErrors().add(new TypeCheckingError(parent, "Termination check failed", term, getNames(localContext)));
           termResult = null;
         }

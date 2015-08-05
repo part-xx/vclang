@@ -1,5 +1,6 @@
 package com.jetbrains.jetpad.vclang.term.expr.visitor;
 
+import com.jetbrains.jetpad.vclang.term.definition.ClassDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.OverriddenDefinition;
 import com.jetbrains.jetpad.vclang.term.expr.*;
@@ -185,12 +186,15 @@ public class SubstVisitor implements ExpressionVisitor<Expression> {
   @Override
   public Expression visitClassExt(ClassExtExpression expr) {
     Map<FunctionDefinition, OverriddenDefinition> definitions = new HashMap<>();
+    ClassDefinition baseClass = new ClassDefinition(expr.getBaseClass().getName().name, expr.getBaseClass().getParent(), expr.getBaseClass().getSuperClasses());
     for (Map.Entry<FunctionDefinition, OverriddenDefinition> entry : expr.getDefinitionsMap().entrySet()) {
       List<Argument> arguments = new ArrayList<>(entry.getValue().getArguments().size());
       Expression[] result = visitLamArguments(entry.getValue().getArguments(), arguments, entry.getValue().getResultType(), entry.getValue().getTerm());
-      definitions.put(entry.getKey(), new OverriddenDefinition(entry.getValue().getName(), entry.getValue().getParent(), entry.getValue().getPrecedence(), arguments, result[0], entry.getValue().getArrow(), result[1], entry.getKey()));
+      OverriddenDefinition definition = new OverriddenDefinition(entry.getValue().getName(), baseClass, entry.getValue().getPrecedence(), arguments, result[0], entry.getValue().getArrow(), result[1], entry.getValue().getOverriddenFunctions());
+      definitions.put(entry.getKey(), definition);
+      baseClass.addPublicField(definition, null);
     }
-    return ClassExt(expr.getBaseClass(), definitions, expr.getUniverse());
+    return ClassExt(baseClass, definitions, expr.getUniverse());
   }
 
   @Override

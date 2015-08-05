@@ -541,7 +541,7 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
         parent = type instanceof ClassExtExpression ? ((ClassExtExpression) type).getBaseClass() : (ClassDefinition) ((DefCallExpression) type).getDefinition();
         Definition child = parent.getPublicField(expr.getName().name);
         if (child instanceof OverriddenDefinition && type instanceof ClassExtExpression) {
-          OverriddenDefinition overriddenDefinition = ((ClassExtExpression) type).getDefinitionsMap().get(((OverriddenDefinition) child).getOverriddenFunction());
+          OverriddenDefinition overriddenDefinition = ((ClassExtExpression) type).getDefinitionsMap().get(((OverriddenDefinition) child).getOverriddenFunctions().get(0));
           if (overriddenDefinition != null) {
             child = overriddenDefinition;
           }
@@ -1375,44 +1375,15 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
     for (Abstract.FunctionDefinition functionDefinition : expr.getDefinitions()) {
       OverriddenDefinition overriddenDefinition = (OverriddenDefinition) expr.getBaseClass().getPublicFields().get(i++);
       if (TypeChecking.typeCheckFunctionBegin(myModuleLoader, expr.getBaseClass(), functionDefinition, myLocalContext, overriddenDefinition) != null) {
-        TypeChecking.typeCheckFunctionEnd(myModuleLoader, expr.getBaseClass(), functionDefinition.getTerm(), overriddenDefinition, myLocalContext, overriddenDefinition.getOverriddenFunction(), false);
+        TypeChecking.typeCheckFunctionEnd(myModuleLoader, expr.getBaseClass(), functionDefinition.getTerm(), overriddenDefinition, myLocalContext, overriddenDefinition.getOverriddenFunctions(), false);
         if (overriddenDefinition.isAbstract()) {
           universe = universe.max(overriddenDefinition.getUniverse());
         }
-        definitions.put(overriddenDefinition.getOverriddenFunction(), overriddenDefinition);
+        definitions.put(overriddenDefinition.getOverriddenFunctions().get(0), overriddenDefinition);
       }
     }
 
     return checkResult(expectedType, new OKResult(ClassExt(expr.getBaseClass(), definitions, universe), new UniverseExpression(universe), null), expr);
-    /*
-    Map<String, FunctionDefinition> abstracts = new HashMap<>();
-    if (expr.getBaseClass().getPublicFields() != null) {
-      for (Definition definition : expr.getBaseClass().getPublicFields()) {
-        if (definition instanceof FunctionDefinition && definition.isAbstract()) {
-          abstracts.put(definition.getName().name, (FunctionDefinition) definition);
-        }
-      }
-    }
-
-    Map<FunctionDefinition, OverriddenDefinition> definitions = new HashMap<>();
-    for (Abstract.FunctionDefinition definition : expr.getDefinitions()) {
-      FunctionDefinition oldDefinition = abstracts.remove(definition.getName().name);
-      if (oldDefinition == null) {
-        myModuleLoader.getTypeCheckingErrors().add(new TypeCheckingError(myParent, definition.getName() + " is not defined in " + expr.getBaseClass().getFullName(), definition, getNames(myLocalContext)));
-      } else {
-        OverriddenDefinition newDefinition = (OverriddenDefinition) TypeChecking.typeCheckFunctionBegin(myModuleLoader, expr.getBaseClass(), definition, myLocalContext);
-        if (newDefinition == null) return null;
-        TypeChecking.typeCheckFunctionEnd(myModuleLoader, expr.getBaseClass(), definition.getTerm(), newDefinition, myLocalContext, oldDefinition, false);
-        definitions.put(oldDefinition, newDefinition);
-      }
-    }
-
-    Universe universe = new Universe.Type(0, Universe.Type.PROP);
-    for (FunctionDefinition definition : abstracts.values()) {
-      universe = universe.max(definition.getUniverse());
-    }
-    return checkResultImplicit(expectedType, new OKResult(ClassExt(expr.getBaseClass(), definitions, universe), new UniverseExpression(universe), null), expr);
-    */
   }
 
   @Override

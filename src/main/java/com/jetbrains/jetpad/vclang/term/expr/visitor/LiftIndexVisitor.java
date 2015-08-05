@@ -1,5 +1,6 @@
 package com.jetbrains.jetpad.vclang.term.expr.visitor;
 
+import com.jetbrains.jetpad.vclang.term.definition.ClassDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.FunctionDefinition;
 import com.jetbrains.jetpad.vclang.term.definition.OverriddenDefinition;
 import com.jetbrains.jetpad.vclang.term.expr.*;
@@ -184,16 +185,21 @@ public class LiftIndexVisitor implements ExpressionVisitor<Expression> {
   @Override
   public Expression visitClassExt(ClassExtExpression expr) {
     Map<FunctionDefinition, OverriddenDefinition> definitions = new HashMap<>();
+    ClassDefinition baseClass = new ClassDefinition(expr.getBaseClass().getName().name, expr.getBaseClass().getParent(), expr.getBaseClass().getSuperClasses());
     for (Map.Entry<FunctionDefinition, OverriddenDefinition> entry : expr.getDefinitionsMap().entrySet()) {
       List<Argument> arguments = new ArrayList<>(entry.getValue().getArguments().size());
       Integer from = visitArguments(entry.getValue().getArguments(), arguments);
-      if (from == null) return null;
+      if (from == null) {
+        return null;
+      }
 
       Expression resultType = entry.getValue().getResultType() == null ? null : entry.getValue().getResultType().liftIndex(from, myOn);
       Expression term = entry.getValue().getTerm() == null ? null : entry.getValue().getTerm().liftIndex(from, myOn);
-      definitions.put(entry.getKey(), new OverriddenDefinition(entry.getValue().getName(), entry.getValue().getParent(), entry.getValue().getPrecedence(), arguments, resultType, entry.getValue().getArrow(), term, entry.getKey()));
+      OverriddenDefinition definition = new OverriddenDefinition(entry.getValue().getName(), baseClass, entry.getValue().getPrecedence(), arguments, resultType, entry.getValue().getArrow(), term, entry.getValue().getOverriddenFunctions());
+      definitions.put(entry.getKey(), definition);
+      baseClass.addPublicField(definition, null);
     }
-    return ClassExt(expr.getBaseClass(), definitions, expr.getUniverse());
+    return ClassExt(baseClass, definitions, expr.getUniverse());
   }
 
   @Override
@@ -207,7 +213,7 @@ public class LiftIndexVisitor implements ExpressionVisitor<Expression> {
     int from = myFrom;
     for (LetClause clause : letExpression.getClauses()) {
       clauses.add(visitLetClause(clause, from));
-      if (clauses.get(clauses.size() - 1)== null)
+      if (clauses.get(clauses.size() - 1) == null)
         return null;
       from++;
     }

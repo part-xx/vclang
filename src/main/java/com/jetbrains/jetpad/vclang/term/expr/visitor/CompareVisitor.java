@@ -10,6 +10,7 @@ import com.jetbrains.jetpad.vclang.term.expr.arg.Argument;
 import com.jetbrains.jetpad.vclang.term.expr.arg.TypeArgument;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -283,14 +284,28 @@ public class CompareVisitor implements AbstractExpressionVisitor<Expression, Com
     if (lamResult != null) return lamResult;
     if (!(other instanceof DefCallExpression)) return new JustResult(CMP.NOT_EQUIV);
     DefCallExpression otherDefCall = (DefCallExpression) other;
-    Definition definition1 = expr.getDefinition() instanceof OverriddenDefinition ? ((OverriddenDefinition) expr.getDefinition()).getOverriddenFunction() : expr.getDefinition();
-    Definition definition2 = otherDefCall.getDefinition() instanceof OverriddenDefinition ? ((OverriddenDefinition) otherDefCall.getDefinition()).getOverriddenFunction() : otherDefCall.getDefinition();
-    if (definition1 == null) {
-      if (!expr.getName().equals(definition2.getName())) return new JustResult(CMP.NOT_EQUIV);
+    List<? extends Definition> definitions1;
+    if (expr.getDefinition() instanceof OverriddenDefinition) {
+      definitions1 = ((OverriddenDefinition) expr.getDefinition()).getOverriddenFunctions();
     } else {
-      if (definition1 != definition2) return new JustResult(CMP.NOT_EQUIV);
+      List<Definition> definitions = new ArrayList<>();
+      definitions.add(expr.getDefinition());
+      definitions1 = definitions;
     }
-    if (expr.getExpression() == null || otherDefCall.getExpression() == null) return new JustResult(CMP.EQUALS);
+    List<? extends Definition> definitions2;
+    if (otherDefCall.getDefinition() instanceof OverriddenDefinition) {
+      definitions2 = ((OverriddenDefinition) otherDefCall.getDefinition()).getOverriddenFunctions();
+    } else {
+      List<Definition> definitions = new ArrayList<>();
+      definitions.add(otherDefCall.getDefinition());
+      definitions2 = definitions;
+    }
+    if (Collections.disjoint(definitions1, definitions2)) {
+      return new JustResult(CMP.NOT_EQUIV);
+    }
+    if (expr.getExpression() == null || otherDefCall.getExpression() == null) {
+      return new JustResult(CMP.EQUALS);
+    }
     return expr.getExpression().accept(this, otherDefCall.getExpression());
   }
 

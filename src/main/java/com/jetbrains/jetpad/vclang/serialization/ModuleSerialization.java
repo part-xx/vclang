@@ -52,7 +52,11 @@ public class ModuleSerialization {
       writeDefinition(visitor.getDataStream(), definition);
       writeUniverse(visitor.getDataStream(), definition.getUniverse());
       if (definition instanceof OverriddenDefinition) {
-        visitor.getDataStream().writeInt(visitor.getDefinitionsIndices().getDefinitionIndex(((OverriddenDefinition) definition).getOverriddenFunction()));
+        OverriddenDefinition overriddenDefinition = (OverriddenDefinition) definition;
+        visitor.getDataStream().writeInt(overriddenDefinition.getOverriddenFunctions().size());
+        for (FunctionDefinition overriddenFunction : overriddenDefinition.getOverriddenFunctions()) {
+          visitor.getDataStream().writeInt(visitor.getDefinitionsIndices().getDefinitionIndex(overriddenFunction));
+        }
       }
       visitor.getDataStream().writeBoolean(functionDefinition.typeHasErrors());
       if (!functionDefinition.typeHasErrors()) {
