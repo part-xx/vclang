@@ -182,11 +182,10 @@ public class MultipleInheritanceTest {
     ModuleLoader moduleLoader = new ModuleLoader();
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
     String text =
-        "\\class O { }\n" +
-        "\\class A \\extends O { }\n" +
-        "\\class B \\extends O { }\n" +
+        "\\class A { }\n" +
+        "\\class B { }\n" +
         "\\class C \\extends A, B { }\n" +
-        "\\class D \\extends A, B { }\n" +
+        "\\class D \\extends C { }\n" +
         "\\class E { \\function x : C }\n" +
         "\\class F { \\function x : D }\n" +
         "\\class G \\extends E, F { }";

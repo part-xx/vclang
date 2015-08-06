@@ -140,7 +140,7 @@ public class NormalizeVisitor implements ExpressionVisitor<Expression> {
       return myMode == Mode.TOP ? null : applyDefCall(defCallExpr, args);
     }
 
-    if (defCallExpr.getDefinition() instanceof Function) {
+    if (defCallExpr.getDefinition() instanceof FunctionDefinition) {
       return visitFunctionCall((Function) defCallExpr.getDefinition(), defCallExpr, args);
     }
 
@@ -211,10 +211,41 @@ public class NormalizeVisitor implements ExpressionVisitor<Expression> {
     }
 
     Expression result = func.getTerm();
+    if (result == null) {
+      return applyDefCall(defCallExpr, args);
+    }
+
+    if (defCallExpr instanceof DefCallExpression) {
+      Expression expr = ((DefCallExpression) defCallExpr).getExpression();
+      if (expr != null) {
+        expr = expr.normalize(Mode.WHNF, myContext);
+        if (expr instanceof NewExpression) {
+          expr = ((NewExpression) expr).getExpression();
+          if (expr instanceof DefCallExpression) {
+            // TODO: Find overridden function.
+            // func = ((ClassDefinition) ((DefCallExpression) expr).getDefinition()).getP
+          } else
+          if (expr instanceof ClassExtExpression) {
+            func = ((ClassExtExpression) expr).getDefinitionsMap().get((FunctionDefinition) ((DefCallExpression) defCallExpr).getDefinition());
+          } else {
+            assert false;
+            return applyDefCall(defCallExpr, args);
+          }
+
+          result = func == null ? null : func.getTerm();
+          if (result == null) {
+            return applyDefCall(defCallExpr, args);
+          }
+        } else {
+          return applyDefCall(defCallExpr, args);
+        }
+      }
+    }
+
     List<TypeArgument> args1 = new ArrayList<>();
     splitArguments(getFunctionType(func), args1, myContext);
     int numberOfArgs = numberOfVariables(args1);
-    if (myMode == Mode.WHNF && numberOfArgs > args.size() || result == null) {
+    if (myMode == Mode.WHNF && numberOfArgs > args.size()) {
       return applyDefCall(defCallExpr, args);
     }
 

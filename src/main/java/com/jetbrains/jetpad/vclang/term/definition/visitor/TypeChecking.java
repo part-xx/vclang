@@ -383,6 +383,9 @@ public class TypeChecking {
     }
 
     definition.typeHasErrors(definition.getResultType() == null);
+    if (definition.typeHasErrors()) {
+      definition.hasErrors(true);
+    }
     Expression type = definition.getType();
     if (type != null) {
       type = type.getType(localContext);

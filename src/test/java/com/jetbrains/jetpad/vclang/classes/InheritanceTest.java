@@ -50,7 +50,7 @@ public class InheritanceTest {
     String text =
         "\\class A { \\function z => 0 }\n" +
         "\\class B \\extends A { \\function z => 1 }\n" +
-        "\\function f (a : A) (a.z = a.z) => 0\n" +
+        "\\function f (a : A) (_ : a.z = a.z) => 0\n" +
         "\\function g => f (\\new A) (path (\\lam _ => 0))\n" +
         "\\function h => f (\\new B) (path (\\lam _ => 1))\n";
     parseDefs(moduleLoader, text);

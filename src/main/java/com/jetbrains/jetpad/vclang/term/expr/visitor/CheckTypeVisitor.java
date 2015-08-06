@@ -1412,7 +1412,7 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
       return null;
     }
 
-    return checkResultImplicit(expectedType, new OKResult(New(okExprResult.expression), normExpr, okExprResult.equations), expr);
+    return checkResultImplicit(expectedType, new OKResult(New(normExpr), normExpr, okExprResult.equations), expr);
   }
 
   private Result visitLetClause(Abstract.LetClause clause) {
