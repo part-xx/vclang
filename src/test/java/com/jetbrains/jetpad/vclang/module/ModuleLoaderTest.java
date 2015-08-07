@@ -197,4 +197,25 @@ public class ModuleLoaderTest {
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
     parseDefs(moduleLoader, "\\function B : \\Type0 \\class A {} \\class A { \\data D (A : Nat) | foo Nat | bar B }", 1, 0);
   }
+
+  @Test
+  public void nephewTestError() {
+    ModuleLoader moduleLoader = new ModuleLoader();
+    moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
+    parseDefs(moduleLoader, "\\function x : Nat \\class A { \\function y : Nat \\class B { \\function f => x \\function g => y } } \\class C { \\function z => A.B.f }", 0, 1);
+  }
+
+  @Test
+  public void nephewExportTest() {
+    ModuleLoader moduleLoader = new ModuleLoader();
+    moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
+    parseDefs(moduleLoader, "\\function x : Nat \\class A { \\function y : Nat \\class B { \\function f => x \\function g => y } \\export B } \\class C { \\function z => A.f }");
+  }
+
+  @Test
+  public void nephewExportTestError() {
+    ModuleLoader moduleLoader = new ModuleLoader();
+    moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
+    parseDefs(moduleLoader, "\\function x : Nat \\class A { \\function y : Nat \\class B { \\function f => x \\function g => y } \\export B } \\class C { \\function z => A.g }", 0, 1);
+  }
 }

@@ -34,6 +34,17 @@ public class InheritanceTest {
   }
 
   @Test
+  public void nameClashTest() {
+    ModuleLoader moduleLoader = new ModuleLoader();
+    moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
+    String text =
+        "\\class A { \\function z => 0 }\n" +
+        "\\class B \\extends A { \\function y : Nat }\n" +
+        "\\class C \\extends B { \\function z : Nat }";
+    parseDefs(moduleLoader, text, 1, 0);
+  }
+
+  @Test
   public void staticEvalTestError() {
     ModuleLoader moduleLoader = new ModuleLoader();
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
@@ -49,7 +60,7 @@ public class InheritanceTest {
     moduleLoader.init(DummySourceSupplier.getInstance(), DummyOutputSupplier.getInstance(), false);
     String text =
         "\\class A { \\function z => 0 }\n" +
-        "\\class B \\extends A { \\function z => 1 }\n" +
+        "\\class B \\extends A { \\override z => 1 }\n" +
         "\\function f (a : A) (_ : a.z = a.z) => 0\n" +
         "\\function g => f (\\new A) (path (\\lam _ => 0))\n" +
         "\\function h => f (\\new B) (path (\\lam _ => 1))\n";

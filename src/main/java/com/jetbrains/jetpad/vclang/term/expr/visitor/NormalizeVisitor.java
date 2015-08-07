@@ -221,12 +221,22 @@ public class NormalizeVisitor implements ExpressionVisitor<Expression> {
         expr = expr.normalize(Mode.WHNF, myContext);
         if (expr instanceof NewExpression) {
           expr = ((NewExpression) expr).getExpression();
-          if (expr instanceof DefCallExpression) {
-            // TODO: Find overridden function.
-            // func = ((ClassDefinition) ((DefCallExpression) expr).getDefinition()).getP
+          FunctionDefinition functionDefinition = (FunctionDefinition) ((DefCallExpression) defCallExpr).getDefinition();
+          if (expr instanceof DefCallExpression && ((DefCallExpression) expr).getDefinition() instanceof ClassDefinition) {
+            boolean found = false;
+            for (Definition definition : ((ClassDefinition) ((DefCallExpression) expr).getDefinition()).getPublicFields()) {
+              if (definition == func || definition instanceof OverriddenDefinition && ((OverriddenDefinition) definition).getOverriddenFunctions().contains(functionDefinition)) {
+                func = (Function) definition;
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              func = null;
+            }
           } else
           if (expr instanceof ClassExtExpression) {
-            func = ((ClassExtExpression) expr).getDefinitionsMap().get((FunctionDefinition) ((DefCallExpression) defCallExpr).getDefinition());
+            func = ((ClassExtExpression) expr).getDefinitionsMap().get(functionDefinition);
           } else {
             assert false;
             return applyDefCall(defCallExpr, args);
