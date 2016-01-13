@@ -32,6 +32,7 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
   private TypeCheckingDefCall myTypeCheckingDefCall;
   private TypeCheckingElim myTypeCheckingElim;
   private ImplicitArgsInference myArgsInference;
+  private Definition myDefinition;
 
   private static class Arg {
     boolean isExplicit;
@@ -79,23 +80,30 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
     }
   }
 
-  private CheckTypeVisitor(List<Binding> localContext, ErrorReporter errorReporter, TypeCheckingDefCall typeCheckingDefCall, ImplicitArgsInference argsInference) {
+  private CheckTypeVisitor(List<Binding> localContext, ErrorReporter errorReporter, TypeCheckingDefCall typeCheckingDefCall, ImplicitArgsInference argsInference, Definition definition) {
     myLocalContext = localContext;
     myErrorReporter = errorReporter;
     myTypeCheckingDefCall = typeCheckingDefCall;
     myArgsInference = argsInference;
+    myDefinition = definition;
   }
 
   public static class Builder {
     private final List<Binding> myLocalContext;
     private final ErrorReporter myErrorReporter;
+    private final Definition myDefinition;
     private TypeCheckingDefCall myTypeCheckingDefCall;
     private ImplicitArgsInference myArgsInference;
     private ClassDefinition myThisClass;
 
     public Builder(List<Binding> localContext, ErrorReporter errorReporter) {
+      this(localContext, errorReporter, null);
+    }
+
+    public Builder(List<Binding> localContext, ErrorReporter errorReporter, Definition definition) {
       myLocalContext = localContext;
       myErrorReporter = errorReporter;
+      myDefinition = definition;
     }
 
     public Builder typeCheckingDefCall(TypeCheckingDefCall typeCheckingDefCall) {
@@ -114,7 +122,7 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
     }
 
     public CheckTypeVisitor build() {
-      CheckTypeVisitor visitor = new CheckTypeVisitor(myLocalContext, myErrorReporter, myTypeCheckingDefCall, myArgsInference);
+      CheckTypeVisitor visitor = new CheckTypeVisitor(myLocalContext, myErrorReporter, myTypeCheckingDefCall, myArgsInference, myDefinition);
       if (myTypeCheckingDefCall == null) {
         visitor.myTypeCheckingDefCall = new TypeCheckingDefCall(visitor);
         visitor.myTypeCheckingDefCall.setThisClass(myThisClass);
@@ -145,6 +153,10 @@ public class CheckTypeVisitor implements AbstractExpressionVisitor<Expression, C
 
   public ErrorReporter getErrorReporter() {
     return myErrorReporter;
+  }
+
+  public Definition getDefinition() {
+    return myDefinition;
   }
 
   public Result checkResult(Expression expectedType, OKResult result, Abstract.Expression expression) {

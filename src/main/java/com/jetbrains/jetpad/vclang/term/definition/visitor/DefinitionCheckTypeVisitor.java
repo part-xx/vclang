@@ -108,19 +108,11 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
     Name name = def.getName();
     Abstract.Definition.Arrow arrow = def.getArrow();
     final FunctionDefinition typedDef = new FunctionDefinition(myNamespace, name, def.getPrecedence());
-    /*
-    if (overriddenFunction == null && def.isOverridden()) {
-      // TODO
-      // myModuleLoader.getTypeCheckingErrors().add(new TypeCheckingError("Cannot find function " + name + " in the parent class", def, getNames(myContext)));
-      myErrorReporter.report(new TypeCheckingError("Overridden function " + name + " cannot be defined in a base class", def, getNames(myContext)));
-      return null;
-    }
-    */
 
     List<? extends Abstract.Argument> arguments = def.getArguments();
     final List<Argument> typedArguments = new ArrayList<>(arguments.size());
     final List<Binding> context = new ArrayList<>();
-    CheckTypeVisitor visitor = new CheckTypeVisitor.Builder(context, myErrorReporter).build();
+    CheckTypeVisitor visitor = new CheckTypeVisitor.Builder(context, myErrorReporter, typedDef).build();
     ClassDefinition thisClass = getThisClass(def, myNamespace);
     if (thisClass != null) {
       context.add(new TypedBinding("\\this", ClassCall(thisClass)));
@@ -361,7 +353,7 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
     Expression typedResultType;
     List<Binding> context = new ArrayList<>();
     context.add(new TypedBinding("\\this", ClassCall(thisClass)));
-    CheckTypeVisitor visitor = new CheckTypeVisitor.Builder(context, myErrorReporter).thisClass(thisClass).build();
+    CheckTypeVisitor visitor = new CheckTypeVisitor.Builder(context, myErrorReporter, thisClass).thisClass(thisClass).build();
     Universe universe = new Universe.Type(0, Universe.Type.PROP);
 
     int index = 0;
@@ -434,8 +426,10 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
     Universe universe = def.getUniverse();
     Universe typedUniverse = new Universe.Type(0, Universe.Type.PROP);
 
+    DataDefinition typedDef = new DataDefinition(myNamespace, def.getName(), def.getPrecedence(), universe != null ? universe : new Universe.Type(0, Universe.Type.PROP), typedParameters);
+
     List<Binding> context = new ArrayList<>();
-    CheckTypeVisitor visitor = new CheckTypeVisitor.Builder(context, myErrorReporter).build();
+    CheckTypeVisitor visitor = new CheckTypeVisitor.Builder(context, myErrorReporter, typedDef).build();
     ClassDefinition thisClass = getThisClass(def, myNamespace);
     if (thisClass != null) {
       context.add(new TypedBinding("\\this", ClassCall(thisClass)));
@@ -457,14 +451,12 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
       }
     }
 
-    Name name = def.getName();
-    DataDefinition dataDefinition = new DataDefinition(myNamespace, name, def.getPrecedence(), universe != null ? universe : new Universe.Type(0, Universe.Type.PROP), typedParameters);
-    dataDefinition.setThisClass(thisClass);
-    myNamespaceMember.definition = dataDefinition;
+    typedDef.setThisClass(thisClass);
+    myNamespaceMember.definition = typedDef;
 
-    myNamespace = myNamespace.getChild(name);
+    myNamespace = myNamespace.getChild(def.getName());
     for (Abstract.Constructor constructor : def.getConstructors()) {
-      Constructor typedConstructor = visitConstructor(constructor, dataDefinition, context, visitor);
+      Constructor typedConstructor = visitConstructor(constructor, typedDef, context, visitor);
       if (typedConstructor == null) {
         continue;
       }
@@ -487,18 +479,18 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
 
     if (universe != null) {
       if (typedUniverse.lessOrEquals(universe)) {
-        dataDefinition.setUniverse(universe);
+        typedDef.setUniverse(universe);
       } else {
         myErrorReporter.report(new TypeMismatchError(new UniverseExpression(universe), new UniverseExpression(typedUniverse), null, new ArrayList<String>()));
-        dataDefinition.setUniverse(typedUniverse);
+        typedDef.setUniverse(typedUniverse);
       }
     } else {
-      dataDefinition.setUniverse(typedUniverse);
+      typedDef.setUniverse(typedUniverse);
     }
 
     context.clear();
     if (def.getConditions() != null) {
-      List<Constructor> cycle = typeCheckConditions(visitor, dataDefinition, def.getConditions());
+      List<Constructor> cycle = typeCheckConditions(visitor, typedDef, def.getConditions());
       if (cycle != null) {
         StringBuilder cycleConditionsError = new StringBuilder();
         cycleConditionsError.append("Conditions form a cycle: ");
@@ -510,9 +502,9 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
         myErrorReporter.report(error);
       }
     }
-    if (dataDefinition.getConditions() != null) {
+    if (typedDef.getConditions() != null) {
       List<Condition> failedConditions = new ArrayList<>();
-      for (Condition condition : dataDefinition.getConditions()) {
+      for (Condition condition : typedDef.getConditions()) {
         try (Utils.CompleteContextSaver<Binding> ignore = new Utils.CompleteContextSaver<>(visitor.getLocalContext())) {
           expandConstructorContext(condition.getConstructor(), visitor.getLocalContext());
           TypeCheckingError error = TypeCheckingElim.checkConditions(condition.getConstructor().getName(), def, condition.getConstructor().getArguments(), visitor.getLocalContext(), condition.getElimTree());
@@ -522,10 +514,10 @@ public class DefinitionCheckTypeVisitor implements AbstractDefinitionVisitor<Voi
           }
         }
       }
-      dataDefinition.getConditions().removeAll(failedConditions);
+      typedDef.getConditions().removeAll(failedConditions);
     }
 
-    return dataDefinition;
+    return typedDef;
   }
 
   private List<Constructor> typeCheckConditions(CheckTypeVisitor visitor, DataDefinition dataDefinition, Collection<? extends Abstract.Condition> conds) {

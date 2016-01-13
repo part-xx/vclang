@@ -7,6 +7,8 @@ import com.jetbrains.jetpad.vclang.term.expr.DefCallExpression;
 import com.jetbrains.jetpad.vclang.term.expr.Expression;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.jetbrains.jetpad.vclang.term.expr.ExpressionFactory.ClassCall;
 import static com.jetbrains.jetpad.vclang.term.expr.ExpressionFactory.Pi;
@@ -17,6 +19,7 @@ public abstract class Definition extends Binding implements Abstract.Definition 
   private boolean myHasErrors;
   private final Namespace myParentNamespace;
   private ClassDefinition myThisClass;
+  private Set<Definition> myDefCallers;
 
   public Definition(Namespace parentNamespace, Name name, Precedence precedence) {
     super(name);
@@ -33,6 +36,24 @@ public abstract class Definition extends Binding implements Abstract.Definition 
   public abstract Expression getBaseType();
 
   public abstract DefCallExpression getDefCall();
+
+  public DefCallExpression getDefCall(Definition caller) {
+    addDefCaller(caller);
+    return getDefCall();
+  }
+
+  public Set<Definition> getDefCallers() {
+    return myDefCallers;
+  }
+
+  public void addDefCaller(Definition caller) {
+    if (caller != null) {
+      if (myDefCallers == null) {
+        myDefCallers = new HashSet<>();
+      }
+      myDefCallers.add(caller);
+    }
+  }
 
   @Override
   public Expression getType() {

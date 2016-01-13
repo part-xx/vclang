@@ -198,7 +198,7 @@ public class ModuleDeserialization {
   private void deserializeDataDefinition(DataInputStream stream, Map<Integer, Definition> definitionMap, DataDefinition definition) throws IOException {
     if (!definition.hasErrors()) {
       definition.setUniverse(readUniverse(stream));
-      definition.setParameters(readTypeArguments(stream, definitionMap));
+      definition.setParameters(readTypeArguments(stream, definitionMap, definition));
     }
 
     int constructorsNumber = stream.readInt();
@@ -220,7 +220,7 @@ public class ModuleDeserialization {
           constructor.setPatterns(patterns);
         }
         constructor.setUniverse(readUniverse(stream));
-        constructor.setArguments(readTypeArguments(stream, definitionMap));
+        constructor.setArguments(readTypeArguments(stream, definitionMap, definition));
       }
 
       definition.addConstructor(constructor);
@@ -233,16 +233,16 @@ public class ModuleDeserialization {
 
     definition.typeHasErrors(stream.readBoolean());
     if (!definition.typeHasErrors()) {
-      definition.setArguments(readArguments(stream, definitionMap));
-      definition.setResultType(readExpression(stream, definitionMap));
+      definition.setArguments(readArguments(stream, definitionMap, definition));
+      definition.setResultType(readExpression(stream, definitionMap, definition));
     }
 
     if (stream.readBoolean()) {
-      definition.setElimTree(readElimTree(stream, definitionMap));
+      definition.setElimTree(readElimTree(stream, definitionMap, definition));
     }
   }
 
-  private ElimTreeNode readElimTree(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  private ElimTreeNode readElimTree(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     switch (stream.readInt()) {
       case 0: {
         BranchElimTreeNode elimTree = new BranchElimTreeNode(stream.readInt());
@@ -257,12 +257,12 @@ public class ModuleDeserialization {
               names.add(stream.readBoolean() ? stream.readUTF() : null);
             }
           }
-          elimTree.addClause(constructor, names, readElimTree(stream, definitionMap));
+          elimTree.addClause(constructor, names, readElimTree(stream, definitionMap, owner));
         }
         return elimTree;
       }
       case 1: {
-        return new LeafElimTreeNode(stream.readBoolean() ? Abstract.Definition.Arrow.RIGHT : Abstract.Definition.Arrow.LEFT, readExpression(stream, definitionMap));
+        return new LeafElimTreeNode(stream.readBoolean() ? Abstract.Definition.Arrow.RIGHT : Abstract.Definition.Arrow.LEFT, readExpression(stream, definitionMap, owner));
       }
       case 2: {
         return EmptyElimTreeNode.getInstance();
@@ -295,7 +295,7 @@ public class ModuleDeserialization {
 
       if (!field.hasErrors()) {
         field.setUniverse(readUniverse(stream));
-        field.setBaseType(readExpression(stream, definitionMap));
+        field.setBaseType(readExpression(stream, definitionMap, definition));
         field.setThisClass(definition);
       }
     }
@@ -307,20 +307,20 @@ public class ModuleDeserialization {
     return new Universe.Type(level, truncated);
   }
 
-  public List<Argument> readArguments(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  public List<Argument> readArguments(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     int size = stream.readInt();
     List<Argument> result = new ArrayList<>(size);
     for (int i = 0; i < size; ++i) {
-      result.add(readArgument(stream, definitionMap));
+      result.add(readArgument(stream, definitionMap, owner));
     }
     return result;
   }
 
-  public List<TypeArgument> readTypeArguments(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  public List<TypeArgument> readTypeArguments(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     int size = stream.readInt();
     List<TypeArgument> result = new ArrayList<>(size);
     for (int i = 0; i < size; ++i) {
-      Argument argument = readArgument(stream, definitionMap);
+      Argument argument = readArgument(stream, definitionMap, owner);
       if (!(argument instanceof TypeArgument)) {
         throw new IncorrectFormat();
       }
@@ -329,11 +329,11 @@ public class ModuleDeserialization {
     return result;
   }
 
-  public List<TelescopeArgument> readTelescopeArguments(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  public List<TelescopeArgument> readTelescopeArguments(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     int size = stream.readInt();
     List<TelescopeArgument> result = new ArrayList<>(size);
     for (int i = 0; i < size; ++i) {
-      Argument argument = readArgument(stream, definitionMap);
+      Argument argument = readArgument(stream, definitionMap, owner);
       if (!(argument instanceof TelescopeArgument)) {
         throw new IncorrectFormat();
       }
@@ -342,7 +342,7 @@ public class ModuleDeserialization {
     return result;
   }
 
-  public Argument readArgument(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  public Argument readArgument(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     boolean explicit = stream.readBoolean();
     int code = stream.read();
     if (code == 0) {
@@ -351,9 +351,9 @@ public class ModuleDeserialization {
       for (int i = 0; i < size; ++i) {
         names.add(stream.readBoolean() ? stream.readUTF() : null);
       }
-      return new TelescopeArgument(explicit, names, readExpression(stream, definitionMap));
+      return new TelescopeArgument(explicit, names, readExpression(stream, definitionMap, owner));
     } else if (code == 1) {
-      return new TypeArgument(explicit, readExpression(stream, definitionMap));
+      return new TypeArgument(explicit, readExpression(stream, definitionMap, owner));
     } else if (code == 2) {
       return new NameArgument(explicit, stream.readBoolean() ? stream.readUTF() : null);
     } else {
@@ -361,18 +361,18 @@ public class ModuleDeserialization {
     }
   }
 
-  public Expression readExpression(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  public Expression readExpression(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     int code = stream.read();
     switch (code) {
       case 1: {
-        Expression function = readExpression(stream, definitionMap);
+        Expression function = readExpression(stream, definitionMap, owner);
         boolean explicit = stream.readBoolean();
         boolean hidden = stream.readBoolean();
-        Expression argument = readExpression(stream, definitionMap);
+        Expression argument = readExpression(stream, definitionMap, owner);
         return Apps(function, new ArgumentExpression(argument, explicit, hidden));
       }
       case 2: {
-        return definitionMap.get(stream.readInt()).getDefCall();
+        return definitionMap.get(stream.readInt()).getDefCall(owner);
       }
       case 3: {
         Definition definition = definitionMap.get(stream.readInt());
@@ -383,8 +383,9 @@ public class ModuleDeserialization {
 
         List<Expression> parameters = new ArrayList<>(size);
         for (int i = 0; i < size; ++i) {
-          parameters.add(readExpression(stream, definitionMap));
+          parameters.add(readExpression(stream, definitionMap, owner));
         }
+        definition.addDefCaller(owner);
         return ConCall((Constructor) definition, parameters);
       }
       case 4: {
@@ -399,54 +400,55 @@ public class ModuleDeserialization {
           if (!(field instanceof ClassField)) {
             throw new IncorrectFormat();
           }
-          Expression type = stream.readBoolean() ? readExpression(stream, definitionMap) : null;
-          Expression term = stream.readBoolean() ? readExpression(stream, definitionMap) : null;
+          Expression type = stream.readBoolean() ? readExpression(stream, definitionMap, owner) : null;
+          Expression term = stream.readBoolean() ? readExpression(stream, definitionMap, owner) : null;
           statements.put((ClassField) field, new ClassCallExpression.ImplementStatement(type, term));
         }
+        definition.addDefCaller(owner);
         return ClassCall((ClassDefinition) definition, statements);
       }
       case 5: {
         return Index(stream.readInt());
       }
       case 6: {
-        Expression body = readExpression(stream, definitionMap);
-        return Lam(readTelescopeArguments(stream, definitionMap), body);
+        Expression body = readExpression(stream, definitionMap, owner);
+        return Lam(readTelescopeArguments(stream, definitionMap, owner), body);
       }
       case 7: {
-        List<TypeArgument> arguments = readTypeArguments(stream, definitionMap);
-        return Pi(arguments, readExpression(stream, definitionMap));
+        List<TypeArgument> arguments = readTypeArguments(stream, definitionMap, owner);
+        return Pi(arguments, readExpression(stream, definitionMap, owner));
       }
       case 8: {
         return new UniverseExpression(readUniverse(stream));
       }
       case 9: {
-        return Error(stream.readBoolean() ? readExpression(stream, definitionMap) : null, new TypeCheckingError(myResolvedName, "Deserialization error", null, null));
+        return Error(stream.readBoolean() ? readExpression(stream, definitionMap, owner) : null, new TypeCheckingError(myResolvedName, "Deserialization error", null, null));
       }
       case 10: {
         int size = stream.readInt();
         List<Expression> fields = new ArrayList<>(size);
         for (int i = 0; i < size; ++i) {
-          fields.add(readExpression(stream, definitionMap));
+          fields.add(readExpression(stream, definitionMap, owner));
         }
-        return Tuple(fields, (SigmaExpression) readExpression(stream, definitionMap));
+        return Tuple(fields, (SigmaExpression) readExpression(stream, definitionMap, owner));
       }
       case 11: {
-        return Sigma(readTypeArguments(stream, definitionMap));
+        return Sigma(readTypeArguments(stream, definitionMap, owner));
       }
       case 13: {
-        Expression expr = readExpression(stream, definitionMap);
+        Expression expr = readExpression(stream, definitionMap, owner);
         return Proj(expr, stream.readInt());
       }
       case 14: {
-        return New(readExpression(stream, definitionMap));
+        return New(readExpression(stream, definitionMap, owner));
       }
       case 15: {
         final int numClauses = stream.readInt();
         final List<LetClause> clauses = new ArrayList<>(numClauses);
         for (int i = 0; i < numClauses; i++) {
-          clauses.add(readLetClause(stream, definitionMap));
+          clauses.add(readLetClause(stream, definitionMap, owner));
         }
-        final Expression expr = readExpression(stream, definitionMap);
+        final Expression expr = readExpression(stream, definitionMap, owner);
         return Let(clauses, expr);
       }
       default: {
@@ -455,11 +457,11 @@ public class ModuleDeserialization {
     }
   }
 
-  private LetClause readLetClause(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {
+  private LetClause readLetClause(DataInputStream stream, Map<Integer, Definition> definitionMap, Definition owner) throws IOException {
     final String name = stream.readUTF();
-    final List<TypeArgument> arguments = readTypeArguments(stream, definitionMap);
-    final Expression resultType = stream.readBoolean() ? readExpression(stream, definitionMap) : null;
-    return let(name, arguments, resultType, readElimTree(stream, definitionMap));
+    final List<TypeArgument> arguments = readTypeArguments(stream, definitionMap, owner);
+    final Expression resultType = stream.readBoolean() ? readExpression(stream, definitionMap, owner) : null;
+    return let(name, arguments, resultType, readElimTree(stream, definitionMap, owner));
   }
 
   public PatternArgument readPatternArg(DataInputStream stream, Map<Integer, Definition> definitionMap) throws IOException {

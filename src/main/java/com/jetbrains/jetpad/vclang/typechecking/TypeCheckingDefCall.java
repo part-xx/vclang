@@ -47,7 +47,7 @@ public class TypeCheckingDefCall {
     }
     if (expr instanceof DefCallExpression) {
       Definition definition = ((DefCallExpression) expr).getDefinition();
-      return new CheckTypeVisitor.OKResult(definition.getDefCall(), definition.getType(), null);
+      return new CheckTypeVisitor.OKResult(definition.getDefCall(myVisitor.getDefinition()), definition.getType(), null);
     }
 
     DefCallResult result = typeCheckNamespace(expr, null);
@@ -67,11 +67,11 @@ public class TypeCheckingDefCall {
   private CheckTypeVisitor.OKResult checkDefinition(Definition definition, Abstract.Expression expr) {
     if (definition instanceof FunctionDefinition && ((FunctionDefinition) definition).typeHasErrors() || !(definition instanceof FunctionDefinition) && definition.hasErrors()) {
       TypeCheckingError error = new HasErrors(definition.getName(), expr);
-      expr.setWellTyped(myVisitor.getLocalContext(), Error(definition.getDefCall(), error));
+      expr.setWellTyped(myVisitor.getLocalContext(), Error(definition.getDefCall(myVisitor.getDefinition()), error));
       myVisitor.getErrorReporter().report(error);
       return null;
     } else {
-      return new CheckTypeVisitor.OKResult(definition.getDefCall(), definition.getBaseType(), null);
+      return new CheckTypeVisitor.OKResult(definition.getDefCall(myVisitor.getDefinition()), definition.getBaseType(), null);
     }
   }
 
