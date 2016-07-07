@@ -12,6 +12,7 @@ import com.jetbrains.jetpad.vclang.term.expr.visitor.CheckTypeVisitor;
 import com.jetbrains.jetpad.vclang.term.expr.visitor.NormalizeVisitor;
 import com.jetbrains.jetpad.vclang.typechecking.error.TypeCheckingError;
 import com.jetbrains.jetpad.vclang.typechecking.error.TypeMismatchError;
+import com.jetbrains.jetpad.vclang.typechecking.implicitargs.equations.DummyEquations;
 import com.jetbrains.jetpad.vclang.typechecking.implicitargs.equations.Equations;
 
 import java.util.*;
@@ -176,7 +177,10 @@ public class StdImplicitArgsInference extends BaseImplicitArgsInference {
               result.expression = Apps(result.expression, args, Collections.nCopies(args.size(), EnumSet.noneOf(AppExpression.Flag.class)));
               result.type = result.type.applyExpressions(args);
             }
-            if (dataCall.isPolymorphic()) {
+          /*  if (dataCall.isPolymorphic()) {
+              if (result.getEquations() instanceof DummyEquations) {
+                result.setEquations(newEquations());
+              }
               //conCall.applyLevelSubst(dataCall.getPolyParamsSubst());
               //result.type.toDataCall().applyLevelSubst(dataCall.getPolyParamsSubst());
               LevelSubstitution levels = conCall.getPolyParamsSubst();
@@ -184,6 +188,9 @@ public class StdImplicitArgsInference extends BaseImplicitArgsInference {
                 LevelExpression expectedLevel = dataCall.getPolyParamsSubst().get(binding);
                 if (expectedLevel != null) {
                   result.getEquations().add(levels.get(binding), expectedLevel, Equations.CMP.EQ, fun);
+               //   if (expectedLevel.isBinding() && expectedLevel.getUnitBinding() instanceof InferenceBinding) {
+               //     result.addUnsolvedVariable((InferenceBinding) expectedLevel.getUnitBinding());
+               //   }
                 }
               }
             }/**/
